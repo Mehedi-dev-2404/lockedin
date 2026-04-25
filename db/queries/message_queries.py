@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 def save_message(telegram_id: int, role: str, content: str) -> None:
     try:
         supabase.table("messages").insert({
-            "telegram_id": telegram_id,
+            "user_id": telegram_id,
             "role": role,
             "content": content,
         }).execute()
@@ -20,7 +20,7 @@ def get_recent_messages(telegram_id: int, limit: int = 20) -> list[dict]:
         response = (
             supabase.table("messages")
             .select("role, content")
-            .eq("telegram_id", telegram_id)
+            .eq("user_id", telegram_id)
             .order("created_at", desc=True)
             .limit(limit)
             .execute()

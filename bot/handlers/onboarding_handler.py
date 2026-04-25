@@ -24,7 +24,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         if user and user.get("is_onboarded"):
             name = user.get("full_name") or user.get("username") or "there"
             streak = get_streak(telegram_id)
-            current = streak.get("current_streak", 0) if streak else 0
+            current = streak.get("leetcode_streak", 0) if streak else 0
             streak_note = f"You're on a {current}-day streak." if current > 0 else "No active streak — fix that today."
             await update.message.reply_text(
                 f"Hey {name}, welcome back.\n\n"

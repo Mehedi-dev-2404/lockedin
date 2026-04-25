@@ -10,7 +10,7 @@ def get_streak(telegram_id: int) -> dict | None:
         response = (
             supabase.table("streaks")
             .select("*")
-            .eq("telegram_id", telegram_id)
+            .eq("user_id", telegram_id)
             .maybe_single()
             .execute()
         )
@@ -25,7 +25,7 @@ def create_streak(telegram_id: int) -> dict | None:
         response = (
             supabase.table("streaks")
             .insert({
-                "telegram_id": telegram_id,
+                "user_id": telegram_id,
                 "leetcode_streak": 0,
                 "applications_streak": 0,
                 "project_streak": 0,
@@ -48,7 +48,7 @@ def update_streak(telegram_id: int, **kwargs) -> dict | None:
         response = (
             supabase.table("streaks")
             .update(kwargs)
-            .eq("telegram_id", telegram_id)
+            .eq("user_id", telegram_id)
             .execute()
         )
         return response.data[0] if response.data else None

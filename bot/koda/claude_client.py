@@ -78,7 +78,8 @@ def classify_intent(user_message: str) -> dict:
         )
         raw = message.content[0].text.strip()
         logger.info(f"classify_intent raw response for {user_message!r}: {raw}")
-        result = json.loads(raw)
+        clean = raw.removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+        result = json.loads(clean)
         # Ensure all expected keys exist
         final = {**_INTENT_DEFAULT, **result}
         logger.info(f"classify_intent parsed intent: {final}")

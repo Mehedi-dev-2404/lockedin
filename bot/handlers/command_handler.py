@@ -24,9 +24,9 @@ async def streak_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         )
         return
 
-    current = streak.get("current_streak", 0)
-    longest = streak.get("longest_streak", 0)
-    last_date = streak.get("last_checkin_date")
+    current = streak.get("leetcode_streak", 0)
+    longest = streak.get("longest_leetcode", 0)
+    last_date = streak.get("last_leetcode_date")
 
     if current == 0:
         streak_line = "Your streak is at 0. Check in today to get it started."

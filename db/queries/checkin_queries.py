@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 
 def create_checkin(telegram_id: int, data: dict) -> dict | None:
     try:
-        payload = {"telegram_id": telegram_id, "date": date.today().isoformat(), **data}
+        payload = {"user_id": telegram_id, "date": date.today().isoformat(), **data}
         response = supabase.table("checkins").insert(payload).execute()
         return response.data[0] if response.data else None
     except Exception as e:
@@ -21,7 +21,7 @@ def get_todays_checkin(telegram_id: int) -> dict | None:
         response = (
             supabase.table("checkins")
             .select("*")
-            .eq("telegram_id", telegram_id)
+            .eq("user_id", telegram_id)
             .eq("date", today)
             .order("created_at", desc=True)
             .limit(1)
@@ -38,7 +38,7 @@ def get_recent_checkins(telegram_id: int, limit: int = 7) -> list[dict]:
         response = (
             supabase.table("checkins")
             .select("*")
-            .eq("telegram_id", telegram_id)
+            .eq("user_id", telegram_id)
             .order("date", desc=True)
             .limit(limit)
             .execute()
@@ -59,7 +59,7 @@ def upsert_todays_checkin(telegram_id: int, data: dict) -> dict | None:
             response = (
                 supabase.table("checkins")
                 .update(data)
-                .eq("telegram_id", telegram_id)
+                .eq("user_id", telegram_id)
                 .eq("date", today)
                 .execute()
             )
@@ -67,7 +67,7 @@ def upsert_todays_checkin(telegram_id: int, data: dict) -> dict | None:
             logger.info(f"upsert_todays_checkin updated: {telegram_id} result={result}")
             return result
         else:
-            payload = {"telegram_id": telegram_id, "date": today, **data}
+            payload = {"user_id": telegram_id, "date": today, **data}
             response = supabase.table("checkins").insert(payload).execute()
             result = response.data[0] if response.data else None
             logger.info(f"upsert_todays_checkin inserted: {telegram_id} result={result}")

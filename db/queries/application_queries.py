@@ -11,7 +11,7 @@ def create_application(telegram_id: int, company: str, role: str) -> dict | None
         response = (
             supabase.table("applications")
             .insert({
-                "telegram_id": telegram_id,
+                "user_id": telegram_id,
                 "company": company,
                 "role": role,
                 "status": "applied",
@@ -35,7 +35,7 @@ def get_application_count(telegram_id: int) -> int:
         response = (
             supabase.table("applications")
             .select("id", count="exact")
-            .eq("telegram_id", telegram_id)
+            .eq("user_id", telegram_id)
             .execute()
         )
         return response.count or 0
@@ -49,7 +49,7 @@ def get_applications(telegram_id: int) -> list[dict]:
         response = (
             supabase.table("applications")
             .select("*")
-            .eq("telegram_id", telegram_id)
+            .eq("user_id", telegram_id)
             .order("applied_at", desc=True)
             .execute()
         )
