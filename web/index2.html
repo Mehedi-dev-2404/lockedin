@@ -155,14 +155,14 @@
       overflow: hidden;
     }
 
-    /* ---- ORB POSITIONER — centred at 50/50 of viewport ---- */
+    /* ---- ORB POSITIONER — centred in hero, behind text ---- */
     .orb-hero-positioner {
       position: absolute;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      width: min(70vw, 1100px);
-      height: min(70vw, 1100px);
+      width: min(80vw, 900px);
+      height: min(80vw, 900px);
       z-index: 1;
       will-change: opacity;
     }
@@ -247,13 +247,14 @@
       top: 38%;
       left: 50%;
       transform: translate(-50%, -50%);
-      width: min(960px, 90vw);
-      height: 520px;
+      width: min(1100px, 95vw);
+      height: 620px;
       background: radial-gradient(
         ellipse at center,
-        rgba(0, 0, 0, 0.58) 0%,
-        rgba(0, 0, 0, 0.22) 48%,
-        transparent 72%
+        rgba(0, 0, 0, 0.7) 0%,
+        rgba(0, 0, 0, 0.45) 40%,
+        rgba(0, 0, 0, 0.15) 65%,
+        transparent 80%
       );
       filter: blur(40px);
       pointer-events: none;
@@ -262,12 +263,18 @@
 
     /* ---- HERO CONTENT — text sits over the orb ---- */
     .hero-content {
-      position: absolute;
-      top: 38%;
-      left: 50%;
-      transform: translate(-50%, -50%);
+      position: relative;
+      top: 0;
+      left: 0;
+      transform: none;
       width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
       padding: 0 var(--pad-x);
+      padding-bottom: 10vh;
       text-align: center;
       z-index: 10;
       pointer-events: none; /* pass through so orb glow stays interactive-free */
@@ -333,7 +340,7 @@
        MEET KODA SECTION
     ============================================================ */
     .meet-section {
-      padding: 160px 0;
+      padding: 200px 0;
       position: relative;
     }
 
@@ -378,6 +385,7 @@
       /* min-height ensures the background orb has space to breathe */
       min-height: 560px;
       align-items: center;
+      padding: 120px 0;
     }
 
     /* ---- CHAT BACKGROUND ORB ----
@@ -392,9 +400,9 @@
       transform: translate(-50%, -50%);
       width: 400px;
       height: 400px;
-      z-index: 0;
-      opacity: 0; /* JS-controlled via scroll */
-      filter: blur(2px);
+      z-index: -1;
+      opacity: 0; /* JS-controlled via scroll — max 0.15 */
+      filter: blur(60px);
       pointer-events: none;
       will-change: opacity;
     }
@@ -880,7 +888,7 @@
       /* Chat orb fade-in — peaks at 0.3 opacity when section centre hits viewport centre */
       const meetRect    = meetSection.getBoundingClientRect();
       const meetProgress = Math.max(0, Math.min(1, (vh - meetRect.top) / (vh * 0.75)));
-      orbChat.style.opacity = (meetProgress * 0.3).toFixed(3);
+      orbChat.style.opacity = (meetProgress * 0.15).toFixed(3);
 
       scrollTicking = false;
     }
