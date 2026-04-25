@@ -11,7 +11,7 @@ def get_streak(telegram_id: int) -> dict | None:
             supabase.table("streaks")
             .select("*")
             .eq("telegram_id", telegram_id)
-            .single()
+            .maybe_single()
             .execute()
         )
         return response.data
@@ -26,13 +26,18 @@ def create_streak(telegram_id: int) -> dict | None:
             supabase.table("streaks")
             .insert({
                 "telegram_id": telegram_id,
-                "current_streak": 0,
-                "longest_streak": 0,
-                "last_checkin_date": None,
+                "leetcode_streak": 0,
+                "applications_streak": 0,
+                "project_streak": 0,
             })
             .execute()
         )
-        return response.data[0] if response.data else None
+        result = response.data[0] if response.data else None
+        if result:
+            logger.info(f"create_streak succeeded for {telegram_id}")
+        else:
+            logger.warning(f"create_streak returned no data for {telegram_id}")
+        return result
     except Exception as e:
         logger.error(f"create_streak failed for {telegram_id}: {e}")
         return None
@@ -72,6 +77,7 @@ def update_leetcode_streak(telegram_id: int) -> tuple[int, bool]:
     """
     streak = get_streak(telegram_id)
     if not streak:
+        logger.error(f"update_leetcode_streak: no streak row found for {telegram_id} — was create_streak called during onboarding?")
         return 0, False
 
     current = streak.get("leetcode_streak", 0)
@@ -82,11 +88,13 @@ def update_leetcode_streak(telegram_id: int) -> tuple[int, bool]:
     if last_date_str:
         last = date.fromisoformat(last_date_str) if isinstance(last_date_str, str) else last_date_str
         if last == today:
+            logger.debug(f"update_leetcode_streak: already counted today for {telegram_id}, streak={current}")
             return current, False
 
     new_streak = _compute_new_streak(current, last_date_str)
     longest = max(streak.get("longest_leetcode", 0), new_streak)
 
+    logger.info(f"update_leetcode_streak: {telegram_id} streak {current} -> {new_streak} (last={last_date_str})")
     update_streak(
         telegram_id,
         leetcode_streak=new_streak,
@@ -105,6 +113,7 @@ def update_applications_streak(telegram_id: int) -> tuple[int, bool]:
     """
     streak = get_streak(telegram_id)
     if not streak:
+        logger.error(f"update_applications_streak: no streak row found for {telegram_id}")
         return 0, False
 
     current = streak.get("applications_streak", 0)
@@ -114,11 +123,13 @@ def update_applications_streak(telegram_id: int) -> tuple[int, bool]:
     if last_date_str:
         last = date.fromisoformat(last_date_str) if isinstance(last_date_str, str) else last_date_str
         if last == today:
+            logger.debug(f"update_applications_streak: already counted today for {telegram_id}, streak={current}")
             return current, False
 
     new_streak = _compute_new_streak(current, last_date_str)
     longest = max(streak.get("longest_applications", 0), new_streak)
 
+    logger.info(f"update_applications_streak: {telegram_id} streak {current} -> {new_streak} (last={last_date_str})")
     update_streak(
         telegram_id,
         applications_streak=new_streak,
@@ -137,6 +148,7 @@ def update_project_streak(telegram_id: int) -> tuple[int, bool]:
     """
     streak = get_streak(telegram_id)
     if not streak:
+        logger.error(f"update_project_streak: no streak row found for {telegram_id}")
         return 0, False
 
     current = streak.get("project_streak", 0)
@@ -146,11 +158,13 @@ def update_project_streak(telegram_id: int) -> tuple[int, bool]:
     if last_date_str:
         last = date.fromisoformat(last_date_str) if isinstance(last_date_str, str) else last_date_str
         if last == today:
+            logger.debug(f"update_project_streak: already counted today for {telegram_id}, streak={current}")
             return current, False
 
     new_streak = _compute_new_streak(current, last_date_str)
     longest = max(streak.get("longest_project", 0), new_streak)
 
+    logger.info(f"update_project_streak: {telegram_id} streak {current} -> {new_streak} (last={last_date_str})")
     update_streak(
         telegram_id,
         project_streak=new_streak,

@@ -10,7 +10,7 @@ def get_user(telegram_id: int) -> dict | None:
             supabase.table("users")
             .select("*")
             .eq("telegram_id", telegram_id)
-            .single()
+            .maybe_single()
             .execute()
         )
         return response.data

@@ -22,20 +22,26 @@ async def _process_intent(telegram_id: int, intent: dict, user: dict) -> str | N
     Silently update DB based on detected intent.
     Returns a milestone message string if something significant happened, else None.
     """
+    logger.info(f"_process_intent: {telegram_id} intent={intent}")
     milestone_msg = None
     name = user.get("full_name") or user.get("username") or "mate"
 
     if intent.get("leetcode"):
-        await asyncio.to_thread(upsert_todays_checkin, telegram_id, {"leetcode_done": True})
+        logger.info(f"_process_intent: saving leetcode_done for {telegram_id}")
+        checkin_result = await asyncio.to_thread(upsert_todays_checkin, telegram_id, {"leetcode_done": True})
+        logger.info(f"_process_intent: upsert_todays_checkin(leetcode_done) returned {checkin_result}")
         new_streak, is_milestone = await asyncio.to_thread(update_leetcode_streak, telegram_id)
+        logger.info(f"_process_intent: update_leetcode_streak returned streak={new_streak} milestone={is_milestone}")
         if is_milestone:
             milestone_msg = f"{new_streak}-day leetcode streak \U0001f525 that's actually hard to do. keep it up {name}."
 
     if intent.get("applied"):
         company = intent.get("company") or "Unknown"
         role = intent.get("role") or ""
+        logger.info(f"_process_intent: saving application for {telegram_id} company={company!r} role={role!r}")
         count_before = await asyncio.to_thread(get_application_count, telegram_id)
-        await asyncio.to_thread(create_application, telegram_id, company, role)
+        app_result = await asyncio.to_thread(create_application, telegram_id, company, role)
+        logger.info(f"_process_intent: create_application returned {app_result}")
 
         # Increment applications_sent in today's checkin
         checkin = await asyncio.to_thread(get_todays_checkin, telegram_id) or {}
@@ -50,8 +56,13 @@ async def _process_intent(telegram_id: int, intent: dict, user: dict) -> str | N
             milestone_msg = f"first app sent. that's the hardest one. now let's do 10 more."
 
     if intent.get("project_work"):
-        await asyncio.to_thread(upsert_todays_checkin, telegram_id, {"project_worked": True})
+        logger.info(f"_process_intent: saving project_worked for {telegram_id}")
+        checkin_result = await asyncio.to_thread(upsert_todays_checkin, telegram_id, {"project_worked": True})
+        logger.info(f"_process_intent: upsert_todays_checkin(project_worked) returned {checkin_result}")
         await asyncio.to_thread(update_project_streak, telegram_id)
+
+    if not any([intent.get("leetcode"), intent.get("applied"), intent.get("project_work")]):
+        logger.info(f"_process_intent: no trackable activity detected for {telegram_id}")
 
     return milestone_msg
 

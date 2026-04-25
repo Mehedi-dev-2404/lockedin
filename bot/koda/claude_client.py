@@ -68,6 +68,7 @@ def get_koda_response(telegram_id: int, user_message: str, user_context: dict) -
 
 def classify_intent(user_message: str) -> dict:
     """Run a lightweight classifier to extract activity intent from a message."""
+    raw = ""
     try:
         message = _client.messages.create(
             model=CLAUDE_MODEL,
@@ -76,14 +77,17 @@ def classify_intent(user_message: str) -> dict:
             messages=[{"role": "user", "content": user_message}],
         )
         raw = message.content[0].text.strip()
+        logger.info(f"classify_intent raw response for {user_message!r}: {raw}")
         result = json.loads(raw)
         # Ensure all expected keys exist
-        return {**_INTENT_DEFAULT, **result}
+        final = {**_INTENT_DEFAULT, **result}
+        logger.info(f"classify_intent parsed intent: {final}")
+        return final
     except json.JSONDecodeError:
-        logger.warning(f"classify_intent returned non-JSON for message: {user_message!r}")
+        logger.warning(f"classify_intent returned non-JSON for message: {user_message!r} — raw was: {raw!r}")
         return dict(_INTENT_DEFAULT)
     except Exception as e:
-        logger.error(f"classify_intent failed: {e}")
+        logger.error(f"classify_intent failed for message {user_message!r}: {e}")
         return dict(_INTENT_DEFAULT)
 
 

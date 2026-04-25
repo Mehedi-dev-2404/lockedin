@@ -6,6 +6,7 @@ logger = logging.getLogger(__name__)
 
 
 def create_application(telegram_id: int, company: str, role: str) -> dict | None:
+    logger.info(f"create_application: {telegram_id} company={company!r} role={role!r}")
     try:
         response = (
             supabase.table("applications")
@@ -18,7 +19,12 @@ def create_application(telegram_id: int, company: str, role: str) -> dict | None
             })
             .execute()
         )
-        return response.data[0] if response.data else None
+        result = response.data[0] if response.data else None
+        if result:
+            logger.info(f"create_application succeeded: {telegram_id} id={result.get('id')}")
+        else:
+            logger.warning(f"create_application returned no data for {telegram_id}")
+        return result
     except Exception as e:
         logger.error(f"create_application failed for {telegram_id}: {e}")
         return None
