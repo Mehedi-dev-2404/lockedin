@@ -13,6 +13,7 @@
     /* ============================================================
        RESET
     ============================================================ */
+    * { -webkit-font-smoothing: antialiased; }
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
     img    { display: block; max-width: 100%; }
     a      { text-decoration: none; color: inherit; }
@@ -93,14 +94,14 @@
 
     /* Orb: slow 40s rotation — feels like breathing, not spinning */
     @keyframes orb-rotate {
-      from { transform: rotate(0deg); }
-      to   { transform: rotate(360deg); }
+      from { transform: translate(-50%, -50%) rotate3d(0,0,1,0deg); }
+      to   { transform: translate(-50%, -50%) rotate3d(0,0,1,360deg); }
     }
 
     /* Orb: gentle scale pulse — 8s, barely perceptible, adds life */
     @keyframes orb-pulse {
       0%, 100% { transform: scale(1); }
-      50%       { transform: scale(1.02); }
+      50%       { transform: scale(1.01); }
     }
 
     /* CTA button: cyan glow breath */
@@ -173,7 +174,7 @@
       width: 100%;
       height: 100%;
       animation: orb-pulse 8s ease-in-out infinite;
-      will-change: transform;
+      will-change: transform, opacity;
     }
 
     /* ---- GLOW LAYERS — 4 stacked radial gradients ----
@@ -697,7 +698,7 @@
             On Vercel, serve koda.jpg from /public or repo root — Vercel serves
             root-level files at /, so if needed use /koda.jpg in production.
           -->
-          <img src="../koda.jpg" class="orb-img-spin" alt="Koda — AI accountability agent" draggable="false">
+          <img src="../koda.jpg" class="orb-img-spin" alt="Koda — AI accountability agent" draggable="false" loading="eager" decoding="async">
         </div>
 
       </div>
@@ -759,7 +760,7 @@
           <div class="orb-chat-inner">
             <div class="orb-chat-glow"></div>
             <div class="orb-chat-clip">
-              <img src="../koda.jpg" class="orb-img-spin" alt="" aria-hidden="true" draggable="false">
+              <img src="../koda.jpg" class="orb-img-spin" alt="" aria-hidden="true" draggable="false" loading="eager" decoding="async">
             </div>
           </div>
         </div>
