@@ -13,7 +13,7 @@ def get_koda_response(telegram_id: int, user_message: str, user_context: dict) -
 
     try:
         message = _client.messages.create(
-            model=CLAUDE_MODEL,
+            model="claude-haiku-4-5-20251001",
             max_tokens=CLAUDE_MAX_TOKENS,
             system=system_prompt,
             messages=[

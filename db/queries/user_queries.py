@@ -43,6 +43,7 @@ def update_user(telegram_id: int, **kwargs) -> dict | None:
             supabase.table("users")
             .update(kwargs)
             .eq("telegram_id", telegram_id)
+            .select()
             .execute()
         )
         return response.data[0] if response.data else None

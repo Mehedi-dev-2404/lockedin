@@ -19,15 +19,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     telegram_id = update.effective_user.id
     tg_user = update.effective_user
 
-    if not user_exists(telegram_id):
-        create_user(
-            telegram_id=telegram_id,
-            username=tg_user.username,
-            full_name=tg_user.full_name,
-        )
-        if not get_streak(telegram_id):
-            create_streak(telegram_id)
-    else:
+    if user_exists(telegram_id):
         user = get_user(telegram_id)
         if user and user.get("is_onboarded"):
             name = user.get("full_name") or user.get("username") or "there"
@@ -40,6 +32,21 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
                 "What are you working on today?"
             )
             return ConversationHandler.END
+        # User exists but onboarding incomplete — fall through to re-prompt
+    else:
+        result = create_user(
+            telegram_id=telegram_id,
+            username=tg_user.username,
+            full_name=tg_user.full_name,
+        )
+        if not result:
+            logger.error(f"create_user returned None for telegram_id={telegram_id}")
+            await update.message.reply_text(
+                "Something went wrong setting up your account. Please try /start again."
+            )
+            return ConversationHandler.END
+        if not get_streak(telegram_id):
+            create_streak(telegram_id)
 
     await update.message.reply_text(
         "Hey, I'm Koda — your accountability agent for the internship grind.\n\n"
@@ -99,7 +106,7 @@ async def get_main_goal(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
     telegram_id = update.effective_user.id
     context.user_data["main_goal"] = update.message.text.strip()
 
-    update_user(
+    result = update_user(
         telegram_id,
         full_name=context.user_data.get("full_name"),
         year_of_study=context.user_data.get("year_of_study"),
@@ -109,6 +116,13 @@ async def get_main_goal(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
         main_goal=context.user_data.get("main_goal"),
         is_onboarded=True,
     )
+
+    if not result:
+        logger.error(f"update_user returned None for telegram_id={telegram_id} during onboarding")
+        await update.message.reply_text(
+            "Something went wrong saving your profile. Please send /start to try again."
+        )
+        return ConversationHandler.END
 
     name = context.user_data.get("full_name", "")
     companies = context.user_data.get("target_companies", [])

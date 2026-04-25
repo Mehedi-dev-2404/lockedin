@@ -1,5 +1,7 @@
+import asyncio
 import logging
 from telegram import Update
+from telegram.constants import ChatAction
 from telegram.ext import ContextTypes
 from db.queries.user_queries import get_user, user_exists
 from db.queries.streak_queries import get_streak
@@ -44,9 +46,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         "longest_streak": streak.get("longest_streak", 0),
     }
 
-    await context.bot.send_chat_action(
-        chat_id=update.effective_chat.id, action="typing"
-    )
-
     response = get_koda_response(telegram_id, user_message, user_context)
-    await update.message.reply_text(response)
+    chunks = [line for line in response.split("\n") if line.strip()]
+
+    for chunk in chunks:
+        await context.bot.send_chat_action(
+            chat_id=update.effective_chat.id, action=ChatAction.TYPING
+        )
+        await asyncio.sleep(0.8)
+        await update.message.reply_text(chunk)
