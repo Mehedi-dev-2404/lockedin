@@ -445,10 +445,22 @@
     @media (max-width: 768px) {
       .nav { padding: 20px 24px; }
 
-      .hero { padding: 0 20px; }
+      /* Issue 6: pull content up — section label at ~25% from top, not 40% */
+      .hero {
+        padding: 25vh 20px 0;
+        justify-content: flex-start;
+      }
 
+      /* Issue 7: section label legibility over orb's bright top edge */
+      .section-label {
+        margin-bottom: 16px; /* was 28px — tightens space before headline */
+        text-shadow: 0 1px 20px rgba(10, 25, 41, 0.8);
+      }
+
+      /* Issue 6: tighten vertical spacing */
       .hero-headline {
         font-size: clamp(2.5rem, 11vw, 4rem);
+        margin-top: 16px; /* was 0 — aligns with 24px→16px brief */
       }
 
       .hero-tagline { font-size: 1.1rem; }
@@ -456,15 +468,40 @@
       .hero-subhead {
         font-size: 15px;
         max-width: 100%;
+        margin-top: 28px; /* was 36px */
       }
 
-      .cta { font-size: 14px; }
+      /* Issue 4 + Issue 6: tighter CTA margin */
+      .cta {
+        font-size: 14px;
+        margin-top: 36px; /* was 44px */
+      }
 
+      /* Issue 1: orb smaller on mobile — ambient, not foreground */
       .orb-container {
-        width: min(85vw, 600px);
-        height: min(85vw, 600px);
+        width: min(70vw, 380px);
+        height: min(70vw, 380px);
+        aspect-ratio: 1 / 1;
+        box-shadow: 0 0 60px 10px rgba(0, 194, 255, 0.25); /* was 120px 20px */
       }
 
+      /* Issue 2: belt-and-braces circle fix for mobile browsers */
+      .orb-spin img {
+        border-radius: 50%;
+      }
+
+      /* Issue 3: stronger readability mask behind headline on mobile */
+      .headline-mask {
+        width: min(95vw, 500px);
+        height: 600px;
+        background: radial-gradient(ellipse at center,
+          rgba(10, 25, 41, 0.75) 0%,
+          rgba(10, 25, 41, 0.4) 40%,
+          transparent 75%);
+        filter: blur(60px);
+      }
+
+      /* Issue 5: bottom caption more readable on mobile */
       .bottom-caption {
         bottom: 20px;
         left: 24px;
@@ -472,7 +509,18 @@
         justify-content: center;
       }
 
+      .bottom-caption span {
+        font-size: 12px; /* was 11px */
+        color: var(--muted); /* was var(--subtle) — #A1A1AA vs #71717A */
+      }
+
       .bottom-caption .caption-right { display: none; }
+
+      /* Issue 4: less aggressive glow pulse on small screens */
+      @keyframes cta-pulse {
+        0%, 100% { box-shadow: inset 0 0 24px rgba(0, 194, 255, 0.18), 0 0 0 0 rgba(0, 194, 255, 0); }
+        50% { box-shadow: inset 0 0 24px rgba(0, 194, 255, 0.18), 0 0 20px rgba(0, 194, 255, 0.3); }
+      }
     }
 
     /* ============================================================
