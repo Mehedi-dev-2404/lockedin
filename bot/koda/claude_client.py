@@ -2,7 +2,7 @@ import json
 import logging
 import anthropic
 from config.settings import ANTHROPIC_API_KEY, CLAUDE_MODEL, CLAUDE_MAX_TOKENS
-from bot.koda.personality import build_system_prompt, BASE_SYSTEM_PROMPT
+from bot.koda.personality import build_system_prompt
 from db.queries.message_queries import save_message, get_recent_messages
 
 logger = logging.getLogger(__name__)
