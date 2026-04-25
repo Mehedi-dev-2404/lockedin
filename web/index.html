@@ -179,6 +179,15 @@
         fade-in 800ms var(--ease) 200ms forwards,
         orb-breathe 7s ease-in-out 2700ms infinite;
       will-change: transform, opacity;
+      /* Safari iOS compositor fix — forces container onto its own GPU layer
+         so border-radius clip is applied at the container level, not skipped
+         when transformed children promote to their own layers */
+      isolation: isolate;
+      transform: translateZ(0);
+      -webkit-transform: translateZ(0);
+      -webkit-backface-visibility: hidden;
+      backface-visibility: hidden;
+      -webkit-mask-image: -webkit-radial-gradient(white, black);
     }
 
     /* Rotation wrapper inside breathe */
@@ -187,14 +196,25 @@
       height: 100%;
       animation: orb-rotate 80s linear 2700ms infinite;
       will-change: transform;
+      /* Mid-layer clip — rotating layer clips its own children */
+      border-radius: 50%;
+      overflow: hidden;
+      isolation: isolate;
     }
 
     .orb-spin img {
-      width: 100%;
-      height: 100%;
+      /* 110% + negative margin crops without transform, so no layer promotion
+         that could escape the parent clip; equivalent crop to the old scale(1.08) */
+      width: 110%;
+      height: 110%;
+      margin-left: -5%;
+      margin-top: -5%;
       object-fit: cover;
-      transform: scale(1.08);
       filter: brightness(1.05) saturate(1.1);
+      /* Belt-and-braces: img pre-clipped to circle at paint time */
+      border-radius: 50%;
+      clip-path: circle(50% at 50% 50%);
+      -webkit-clip-path: circle(50% at 50% 50%);
     }
 
     /* Shimmer overlay on orb */
