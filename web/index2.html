@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Koda — the AI accountability agent for CS students grinding for internships. On Telegram. Always watching.">
+  <title>LockedIn — Lock in. Land the offer.</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,800;0,900;1,800;1,900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <style>
+    /* ============================================================
+       RESET
+    ============================================================ */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    img    { display: block; max-width: 100%; }
+    a      { text-decoration: none; color: inherit; }
+    button { font: inherit; cursor: pointer; border: none; background: none; }
+
+    /* ============================================================
+       CUSTOM PROPERTIES
+    ============================================================ */
+    :root {
+      --bg:      #000;
+      --text:    #fff;
+      --muted:   rgba(255, 255, 255, 0.6);
+      --subtle:  rgba(255, 255, 255, 0.35);
+      --cyan:    #00C2FF;
+      --blue:    #0044FF;
+      --divider: rgba(255, 255, 255, 0.08);
+      /* Apple-grade ease-out — used everywhere */
+      --ease:    cubic-bezier(0.16, 1, 0.3, 1);
+      --max-w:   1200px;
+      --pad-x:   clamp(24px, 5vw, 80px);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 16px;
+      line-height: 1.6;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* ============================================================
+       NOISE GRAIN OVERLAY — fixed, pointer-events none, ~3% opacity
+    ============================================================ */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      pointer-events: none;
+      opacity: 0.03;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E");
+      background-size: 200px 200px;
+    }
+
+    /* ============================================================
+       LAYOUT UTILITIES
+    ============================================================ */
+    .container {
+      max-width: var(--max-w);
+      margin: 0 auto;
+      padding: 0 var(--pad-x);
+    }
+
+    .mono { font-family: 'JetBrains Mono', monospace; }
+
+    /* ============================================================
+       SCROLL FADE-UP — opacity 0 + translateY 30px → visible
+       Triggered by IntersectionObserver in JS (threshold 0.15)
+    ============================================================ */
+    .fade-up {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 800ms var(--ease), transform 800ms var(--ease);
+    }
+    .fade-up.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ============================================================
+       KEYFRAMES
+    ============================================================ */
+
+    /* Orb: slow 40s rotation — feels like breathing, not spinning */
+    @keyframes orb-rotate {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
+
+    /* Orb: gentle scale pulse — 8s, barely perceptible, adds life */
+    @keyframes orb-pulse {
+      0%, 100% { transform: scale(1); }
+      50%       { transform: scale(1.02); }
+    }
+
+    /* CTA button: cyan glow breath */
+    @keyframes cta-glow {
+      0%, 100% { box-shadow: 0 0 30px rgba(0, 194, 255, 0.3); }
+      50%       { box-shadow: 0 0 60px rgba(0, 194, 255, 0.6); }
+    }
+
+    /* Online status dot */
+    @keyframes dot-pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.3; }
+    }
+
+    /* ============================================================
+       NAV — absolute over hero, 32px from edges
+    ============================================================ */
+    .nav {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 32px;
+    }
+
+    .nav-wordmark {
+      font-size: 14px;
+      font-weight: 400;
+      letter-spacing: -0.01em;
+      color: #fff;
+    }
+
+    .nav-login {
+      font-size: 14px;
+      font-weight: 400;
+      color: rgba(255, 255, 255, 0.65);
+      transition: color 0.25s var(--ease);
+    }
+    .nav-login:hover { color: #fff; }
+
+    /* ============================================================
+       HERO — full viewport, orb dominates
+    ============================================================ */
+    .hero {
+      position: relative;
+      height: 100vh;
+      min-height: 700px;
+      overflow: hidden;
+    }
+
+    /* ---- ORB POSITIONER — centred at 50/50 of viewport ---- */
+    .orb-hero-positioner {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: min(70vw, 1100px);
+      height: min(70vw, 1100px);
+      z-index: 1;
+      will-change: opacity;
+    }
+
+    /* Pulse wrapper — scale only, so translate on parent is not overwritten */
+    .orb-hero-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      animation: orb-pulse 8s ease-in-out infinite;
+      will-change: transform;
+    }
+
+    /* ---- GLOW LAYERS — 4 stacked radial gradients ----
+       Each extends progressively further beyond the orb boundary.
+       Together they create true atmospheric light bleeding into the black.
+    ---- */
+    .orb-glow {
+      position: absolute;
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    /* Immediate corona — tight, bright */
+    .orb-glow-1 {
+      inset: -8%;
+      background: radial-gradient(circle, rgba(0, 194, 255, 0.28) 0%, transparent 58%);
+      filter: blur(18px);
+      z-index: 0;
+    }
+
+    /* Mid glow — blue-shifted, wider */
+    .orb-glow-2 {
+      inset: -28%;
+      background: radial-gradient(circle, rgba(0, 68, 255, 0.22) 0%, transparent 52%);
+      filter: blur(48px);
+      z-index: 0;
+    }
+
+    /* Outer atmospheric — cyan, very soft */
+    .orb-glow-3 {
+      inset: -55%;
+      background: radial-gradient(circle, rgba(0, 194, 255, 0.11) 0%, transparent 48%);
+      filter: blur(80px);
+      z-index: 0;
+    }
+
+    /* Deep field — fills the hero background with faint blue light */
+    .orb-glow-4 {
+      inset: -90%;
+      background: radial-gradient(circle, rgba(0, 68, 255, 0.07) 0%, transparent 44%);
+      filter: blur(110px);
+      z-index: 0;
+    }
+
+    /* ---- CIRCULAR CLIP — the orb itself ---- */
+    .orb-hero-clip {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      overflow: hidden;
+    }
+
+    /* Rotation lives on the image — separate from clip and pulse */
+    .orb-img-spin {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      animation: orb-rotate 40s linear infinite;
+      will-change: transform;
+    }
+
+    /* ---- TEXT MASK ----
+       A soft black radial gradient dimming the orb directly behind the text.
+       Invisible as a shape — just reduces the orb luminance under the copy.
+    ---- */
+    .hero-text-mask {
+      position: absolute;
+      top: 38%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: min(960px, 90vw);
+      height: 520px;
+      background: radial-gradient(
+        ellipse at center,
+        rgba(0, 0, 0, 0.58) 0%,
+        rgba(0, 0, 0, 0.22) 48%,
+        transparent 72%
+      );
+      filter: blur(40px);
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    /* ---- HERO CONTENT — text sits over the orb ---- */
+    .hero-content {
+      position: absolute;
+      top: 38%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 100%;
+      padding: 0 var(--pad-x);
+      text-align: center;
+      z-index: 10;
+      pointer-events: none; /* pass through so orb glow stays interactive-free */
+    }
+    /* Re-enable pointer events only on the CTA */
+    .hero-content .hero-cta { pointer-events: auto; }
+
+    .hero-headline {
+      font-size: clamp(3.5rem, 10vw, 9rem);
+      font-weight: 900;
+      letter-spacing: -0.04em;
+      line-height: 0.95;
+      margin-bottom: 28px;
+      /* Punch through the bright orb */
+      text-shadow: 0 2px 40px rgba(0, 0, 0, 0.6), 0 0 80px rgba(0, 0, 0, 0.3);
+    }
+    .hero-headline em { font-style: italic; }
+
+    .hero-subhead {
+      font-size: clamp(1rem, 2vw, 1.2rem);
+      color: var(--muted);
+      max-width: 520px;
+      margin: 0 auto 44px;
+      line-height: 1.65;
+      text-shadow: 0 1px 24px rgba(0, 0, 0, 0.5);
+    }
+
+    /* CTA button */
+    .hero-cta {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 18px 36px;
+      background: #fff;
+      color: #000;
+      font-family: 'Inter', sans-serif;
+      font-size: 1rem;
+      font-weight: 600;
+      border-radius: 12px;
+      letter-spacing: -0.01em;
+      cursor: pointer;
+      animation: cta-glow 3s ease-in-out infinite;
+      transition: transform 0.35s var(--ease), filter 0.35s var(--ease);
+    }
+    .hero-cta:hover {
+      transform: scale(1.035);
+      filter: brightness(0.93);
+    }
+    .hero-cta:active {
+      transform: scale(0.98);
+    }
+
+    .hero-fine-print {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--subtle);
+      margin-top: 20px;
+      letter-spacing: 0.07em;
+      display: block;
+    }
+
+    /* ============================================================
+       MEET KODA SECTION
+    ============================================================ */
+    .meet-section {
+      padding: 160px 0;
+      position: relative;
+    }
+
+    /* Section number label */
+    .section-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--subtle);
+      display: block;
+      margin-bottom: 28px;
+      text-align: center;
+    }
+
+    .meet-head {
+      text-align: center;
+      margin-bottom: 80px;
+    }
+
+    .meet-headline {
+      font-size: clamp(2rem, 5vw, 4rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      margin-bottom: 24px;
+    }
+
+    .meet-subhead {
+      font-size: 1.0625rem;
+      color: var(--muted);
+      max-width: 600px;
+      margin: 0 auto;
+      line-height: 1.75;
+    }
+
+    /* ---- CHAT AREA — relative container for orb + bubbles ---- */
+    .chat-area {
+      position: relative;
+      display: flex;
+      justify-content: center;
+      /* min-height ensures the background orb has space to breathe */
+      min-height: 560px;
+      align-items: center;
+    }
+
+    /* ---- CHAT BACKGROUND ORB ----
+       Smaller (~400px), heavily blurred, very low opacity.
+       Reads as ambient atmosphere not a focal point.
+       Opacity animated to 0.3 via JS scroll handler.
+    ---- */
+    .orb-chat-positioner {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 400px;
+      height: 400px;
+      z-index: 0;
+      opacity: 0; /* JS-controlled via scroll */
+      filter: blur(2px);
+      pointer-events: none;
+      will-change: opacity;
+    }
+
+    .orb-chat-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Glow for the chat orb — slightly warmer, more diffused */
+    .orb-chat-glow {
+      position: absolute;
+      inset: -45%;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(0, 194, 255, 0.32) 0%, transparent 58%);
+      filter: blur(50px);
+      pointer-events: none;
+    }
+
+    .orb-chat-clip {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      overflow: hidden;
+    }
+
+    /* ---- CHAT BUBBLES WRAP — floats above the orb ---- */
+    .chat-bubbles-wrap {
+      position: relative;
+      z-index: 5;
+      max-width: 520px;
+      width: 100%;
+    }
+
+    /* Chat identity header */
+    .chat-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 36px;
+    }
+
+    .chat-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      overflow: hidden;
+      flex-shrink: 0;
+      border: 1px solid rgba(0, 194, 255, 0.25);
+    }
+
+    .chat-avatar-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .chat-identity {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .chat-name {
+      font-size: 16px;
+      font-weight: 600;
+      color: #fff;
+      line-height: 1;
+    }
+
+    .chat-status {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--cyan);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .online-dot {
+      font-size: 8px;
+      animation: dot-pulse 1.5s ease-in-out infinite;
+      display: inline-block;
+    }
+
+    /* ---- MESSAGES ---- */
+    .chat-messages {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    /* Messages start hidden — JS staggers them in */
+    .chat-msg {
+      display: flex;
+      flex-direction: column;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 400ms var(--ease), transform 400ms var(--ease);
+    }
+    .chat-msg.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .chat-msg.incoming { align-items: flex-start; }
+    .chat-msg.outgoing { align-items: flex-end; }
+
+    .bubble {
+      padding: 12px 16px;
+      font-size: 15px;
+      line-height: 1.5;
+      max-width: 75%;
+    }
+
+    /* Koda (incoming): muted dark grey on black */
+    .chat-msg.incoming .bubble {
+      background: rgba(255, 255, 255, 0.06);
+      color: #fff;
+      border-radius: 16px;
+      border-bottom-left-radius: 4px;
+    }
+
+    /* User (outgoing): subtle deep blue with cyan border */
+    .chat-msg.outgoing .bubble {
+      background: rgba(0, 68, 255, 0.25);
+      border: 1px solid rgba(0, 194, 255, 0.2);
+      color: #fff;
+      border-radius: 16px;
+      border-bottom-right-radius: 4px;
+    }
+
+    /* Mono timestamp */
+    .ts {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.3);
+      margin-top: 5px;
+      padding: 0 4px;
+    }
+    .chat-msg.outgoing .ts { text-align: right; }
+
+    /* ============================================================
+       FOOTER
+    ============================================================ */
+    .footer {
+      border-top: 1px solid var(--divider);
+      padding: 48px 32px;
+    }
+
+    .footer-inner {
+      max-width: var(--max-w);
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+    }
+
+    .footer-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .footer-wordmark {
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: var(--muted);
+    }
+
+    .footer-tagline {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--subtle);
+      letter-spacing: 0.07em;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 24px;
+    }
+
+    .footer-links a {
+      font-size: 13px;
+      color: var(--subtle);
+      transition: color 0.2s var(--ease);
+    }
+    .footer-links a:hover { color: #fff; }
+
+    .footer-copy {
+      font-size: 13px;
+      color: var(--subtle);
+    }
+
+    /* ============================================================
+       RESPONSIVE — 768px breakpoint
+    ============================================================ */
+    @media (max-width: 768px) {
+      /* Hero: larger orb on mobile, text pushed higher */
+      .orb-hero-positioner {
+        width: 92vw;
+        height: 92vw;
+      }
+
+      .hero-content {
+        top: 30%;
+      }
+
+      .hero-text-mask {
+        top: 30%;
+        width: 94vw;
+        height: 340px;
+      }
+
+      /* Meet section: tighter padding */
+      .meet-section { padding: 96px 0; }
+      .meet-head { margin-bottom: 56px; }
+
+      /* Chat orb smaller on mobile */
+      .orb-chat-positioner {
+        width: 280px;
+        height: 280px;
+      }
+
+      /* Chat area: allow content to flow naturally */
+      .chat-area { min-height: auto; padding: 20px 0; }
+
+      .bubble { max-width: 88%; font-size: 14px; }
+
+      /* Footer: stack on mobile */
+      .footer-row {
+        flex-direction: column;
+        gap: 12px;
+        text-align: center;
+      }
+
+      .footer-links {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 16px;
+      }
+
+      .footer { padding: 48px 24px; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ============================================================
+       SECTION 1: HERO
+       The orb is Koda. It watches. It glows. Text floats on top.
+  ============================================================ -->
+  <section class="hero" id="hero">
+
+    <!-- Top bar — absolute, 32px from edges -->
+    <nav class="nav">
+      <a href="/" class="nav-wordmark">LockedIn</a>
+      <!-- REPLACE with actual dashboard/login URL when auth is live -->
+      <a href="#" class="nav-login">Login</a>
+    </nav>
+
+    <!-- THE ORB — z-index 1, behind everything else -->
+    <div class="orb-hero-positioner" id="orb-hero">
+      <div class="orb-hero-inner">
+
+        <!-- 4 stacked glow layers — atmospheric light bleeding into black -->
+        <div class="orb-glow orb-glow-1"></div>
+        <div class="orb-glow orb-glow-2"></div>
+        <div class="orb-glow orb-glow-3"></div>
+        <div class="orb-glow orb-glow-4"></div>
+
+        <!-- Orb image — circular clip, slow rotation -->
+        <div class="orb-hero-clip">
+          <!--
+            koda.jpg is in the repo root.
+            web/index2.html is one level deep in /web/, so path is ../koda.jpg.
+            On Vercel, serve koda.jpg from /public or repo root — Vercel serves
+            root-level files at /, so if needed use /koda.jpg in production.
+          -->
+          <img src="../koda.jpg" class="orb-img-spin" alt="Koda — AI accountability agent" draggable="false">
+        </div>
+
+      </div>
+    </div>
+
+    <!-- TEXT MASK — softens the orb directly behind the copy for readability -->
+    <div class="hero-text-mask" aria-hidden="true"></div>
+
+    <!-- HERO CONTENT — layered above orb (z-index 10) -->
+    <div class="hero-content">
+      <!--
+        "Lock in" is italic per spec.
+        Headline size: clamp(3.5rem, 10vw, 9rem) — massive.
+      -->
+      <h1 class="hero-headline"><em>Lock in.</em> Land the offer.</h1>
+      <p class="hero-subhead">
+        The AI accountability agent for CS students grinding for internships.
+        On Telegram. Always watching.
+      </p>
+      <!--
+        REPLACE href — Telegram bot URL.
+        Current placeholder: https://t.me/LockedInKodaBot
+        See also: TELEGRAM_BOT_URL constant in <script> below.
+      -->
+      <a href="https://t.me/LockedInKodaBot" class="hero-cta" target="_blank" rel="noopener">
+        Start grinding &rarr;
+      </a>
+      <span class="hero-fine-print mono">Free 7-day trial. Cancel anytime.</span>
+    </div>
+
+  </section><!-- /hero -->
+
+
+  <!-- ============================================================
+       SECTION 2: MEET KODA
+       Chat bubbles float on black. Small orb glows behind them.
+  ============================================================ -->
+  <section class="meet-section" id="meet">
+    <div class="container">
+
+      <!-- Section heading -->
+      <div class="meet-head">
+        <span class="section-label mono fade-up">01 &rarr; Meet Koda</span>
+        <h2 class="meet-headline fade-up">Koda doesn't ask how you're feeling.</h2>
+        <p class="meet-subhead fade-up">
+          It asks if you've done your two LeetCode problems today.
+          It remembers you said you wanted Goldman.
+          It nudges you at 8pm when you go quiet.
+          It logs every application you mention.
+          It's the senior dev you wish you had on speed dial.
+        </p>
+      </div>
+
+      <!-- Chat area — background orb + floating bubbles -->
+      <div class="chat-area">
+
+        <!-- Background orb — opacity 0, JS fades to 0.3 as section enters view -->
+        <div class="orb-chat-positioner" id="orb-chat">
+          <div class="orb-chat-inner">
+            <div class="orb-chat-glow"></div>
+            <div class="orb-chat-clip">
+              <img src="../koda.jpg" class="orb-img-spin" alt="" aria-hidden="true" draggable="false">
+            </div>
+          </div>
+        </div>
+
+        <!-- Floating chat bubbles — no phone chrome, no Telegram window -->
+        <div class="chat-bubbles-wrap">
+
+          <!-- Avatar + identity header -->
+          <div class="chat-header fade-up">
+            <div class="chat-avatar">
+              <img src="../koda.jpg" class="chat-avatar-img" alt="Koda">
+            </div>
+            <div class="chat-identity">
+              <span class="chat-name">Koda</span>
+              <span class="chat-status">
+                <span class="online-dot">&#9679;</span>
+                <span class="mono">online</span>
+              </span>
+            </div>
+          </div>
+
+          <!-- Messages — opacity 0 by default, JS staggers them in -->
+          <div class="chat-messages" id="chat-messages">
+
+            <div class="chat-msg incoming">
+              <div class="bubble">morning. you said 2 leetcode before lectures. it&rsquo;s 9:47.</div>
+              <span class="ts mono">09:47</span>
+            </div>
+
+            <div class="chat-msg outgoing">
+              <div class="bubble">did one. medium. dynamic programming</div>
+              <span class="ts mono">09:51</span>
+            </div>
+
+            <div class="chat-msg incoming">
+              <div class="bubble">noted. 1/2. streak: 12 days. how&rsquo;s the goldman superday prep?</div>
+              <span class="ts mono">09:51</span>
+            </div>
+
+            <div class="chat-msg outgoing">
+              <div class="bubble">behavioural questions are killing me</div>
+              <span class="ts mono">09:53</span>
+            </div>
+
+            <div class="chat-msg incoming">
+              <div class="bubble">ok. 3 STAR stories by friday. i&rsquo;ll check in thursday 8pm.</div>
+              <span class="ts mono">09:53</span>
+            </div>
+
+          </div><!-- /chat-messages -->
+        </div><!-- /chat-bubbles-wrap -->
+      </div><!-- /chat-area -->
+
+    </div><!-- /container -->
+  </section><!-- /meet -->
+
+
+  <!-- ============================================================
+       SECTION 3: FOOTER
+  ============================================================ -->
+  <footer class="footer">
+    <div class="footer-inner">
+
+      <!-- Row 1: wordmark + tagline -->
+      <div class="footer-row">
+        <span class="footer-wordmark">LockedIn</span>
+        <span class="footer-tagline mono">Lock in. Land the offer.</span>
+      </div>
+
+      <!-- Row 2: links + copyright -->
+      <div class="footer-row">
+        <div class="footer-links">
+          <!-- REPLACE with actual policy page URLs -->
+          <a href="#">Terms</a>
+          <a href="#">Privacy</a>
+          <a href="mailto:hello@lockedin.so">Contact</a>
+        </div>
+        <span class="footer-copy">&copy; 2026 LockedIn</span>
+      </div>
+
+    </div>
+  </footer>
+
+
+  <script>
+    /* ============================================================
+       PLACEHOLDERS — REPLACE BEFORE GOING LIVE
+       ============================================================
+
+       TELEGRAM_BOT_URL
+         Current value: https://t.me/LockedInKodaBot
+         Find & replace in two places:
+           1. The .hero-cta href attribute in the HTML above
+           2. The constant below (if you use it programmatically)
+
+       That's it for this page — no Stripe, no backend calls here.
+    ============================================================ */
+    const TELEGRAM_BOT_URL = 'https://t.me/LockedInKodaBot'; // REPLACE
+
+    /* ============================================================
+       ELEMENT REFERENCES
+    ============================================================ */
+    const heroSection = document.getElementById('hero');
+    const meetSection = document.getElementById('meet');
+    const orbHero     = document.getElementById('orb-hero');
+    const orbChat     = document.getElementById('orb-chat');
+    const chatMsgs    = document.querySelectorAll('.chat-msg');
+
+    /* ============================================================
+       SCROLL ANIMATION — rAF-based for smooth 60fps updates
+
+       Hero orb: fades OUT as the hero exits the viewport.
+         opacity = 1 at scrollY 0, reaches 0 when hero is ~75% scrolled away.
+
+       Chat orb: fades IN as the meet section enters the viewport.
+         opacity rises from 0 to 0.3 as the section scrolls to centre.
+    ============================================================ */
+    let scrollTicking = false;
+
+    function onScroll() {
+      if (!scrollTicking) {
+        requestAnimationFrame(applyScroll);
+        scrollTicking = true;
+      }
+    }
+
+    function applyScroll() {
+      const scrollY  = window.scrollY;
+      const heroH    = heroSection.offsetHeight;
+      const vh       = window.innerHeight;
+
+      /* Hero orb fade-out — multiply by 1.4 so it fully disappears before section ends */
+      const heroFade = Math.max(0, 1 - (scrollY / heroH) * 1.4);
+      orbHero.style.opacity = heroFade;
+
+      /* Chat orb fade-in — peaks at 0.3 opacity when section centre hits viewport centre */
+      const meetRect    = meetSection.getBoundingClientRect();
+      const meetProgress = Math.max(0, Math.min(1, (vh - meetRect.top) / (vh * 0.75)));
+      orbChat.style.opacity = (meetProgress * 0.3).toFixed(3);
+
+      scrollTicking = false;
+    }
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    /* Initialise on load in case page is not at top */
+    applyScroll();
+
+    /* ============================================================
+       FADE-UP — IntersectionObserver for .fade-up elements
+       threshold 0.15 = fires when 15% of element is visible
+    ============================================================ */
+    const fadeObs = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          e.target.classList.add('visible');
+          fadeObs.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.15 });
+
+    document.querySelectorAll('.fade-up').forEach(el => fadeObs.observe(el));
+
+    /* ============================================================
+       CHAT MESSAGES — staggered fade-in when meet section is 30% visible
+       Each bubble: 400ms ease-out (see CSS), 700ms between bubbles.
+       First message delayed 350ms to let the chat-header fade-up settle first.
+    ============================================================ */
+    let chatAnimated = false;
+
+    function animateChat() {
+      if (chatAnimated) return;
+      chatAnimated = true;
+      chatMsgs.forEach((msg, i) => {
+        setTimeout(() => msg.classList.add('visible'), 350 + i * 700);
+      });
+    }
+
+    const chatObs = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          animateChat();
+          chatObs.disconnect();
+        }
+      });
+    }, { threshold: 0.3 });
+
+    if (meetSection) chatObs.observe(meetSection);
+  </script>
+
+</body>
+</html>
