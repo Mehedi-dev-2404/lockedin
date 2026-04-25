@@ -340,7 +340,7 @@
        MEET KODA SECTION
     ============================================================ */
     .meet-section {
-      padding: 200px 0;
+      padding: 80px 0;
       position: relative;
     }
 
@@ -382,10 +382,8 @@
       position: relative;
       display: flex;
       justify-content: center;
-      /* min-height ensures the background orb has space to breathe */
       min-height: 560px;
       align-items: center;
-      padding: 120px 0;
     }
 
     /* ---- CHAT BACKGROUND ORB ----
@@ -402,7 +400,7 @@
       height: 400px;
       z-index: -1;
       opacity: 0; /* JS-controlled via scroll — max 0.15 */
-      filter: blur(60px);
+      filter: blur(80px);
       pointer-events: none;
       will-change: opacity;
     }
@@ -605,25 +603,26 @@
        RESPONSIVE — 768px breakpoint
     ============================================================ */
     @media (max-width: 768px) {
-      /* Hero: larger orb on mobile, text pushed higher */
-      .orb-hero-positioner {
-        width: 92vw;
-        height: 92vw;
+      /* Hero headline smaller on mobile */
+      .hero-headline {
+        font-size: clamp(2.5rem, 8vw, 5rem);
       }
 
-      .hero-content {
-        top: 30%;
+      /* Hero: orb fills mobile viewport */
+      .orb-hero-positioner {
+        width: 95vw;
+        height: 95vw;
       }
 
       .hero-text-mask {
-        top: 30%;
         width: 94vw;
         height: 340px;
       }
 
-      /* Meet section: tighter padding */
-      .meet-section { padding: 96px 0; }
-      .meet-head { margin-bottom: 56px; }
+      /* Meet section */
+      .meet-section { padding: 60px 0; }
+      .meet-head { margin-bottom: 56px; text-align: center; }
+      .meet-subhead { text-align: center; }
 
       /* Chat orb smaller on mobile */
       .orb-chat-positioner {
@@ -632,9 +631,12 @@
       }
 
       /* Chat area: allow content to flow naturally */
-      .chat-area { min-height: auto; padding: 20px 0; }
+      .chat-area { min-height: auto; }
 
-      .bubble { max-width: 88%; font-size: 14px; }
+      .bubble { max-width: 85%; font-size: 14px; }
+
+      /* All text centred on mobile */
+      .chat-bubbles-wrap { text-align: center; }
 
       /* Footer: stack on mobile */
       .footer-row {
@@ -888,7 +890,7 @@
       /* Chat orb fade-in — peaks at 0.3 opacity when section centre hits viewport centre */
       const meetRect    = meetSection.getBoundingClientRect();
       const meetProgress = Math.max(0, Math.min(1, (vh - meetRect.top) / (vh * 0.75)));
-      orbChat.style.opacity = (meetProgress * 0.15).toFixed(3);
+      orbChat.style.opacity = (meetProgress * 0.12).toFixed(3);
 
       scrollTicking = false;
     }
