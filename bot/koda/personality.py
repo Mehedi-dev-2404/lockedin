@@ -58,6 +58,11 @@ def build_system_prompt(user_context: dict) -> str:
     companies_str = target_companies
     weak_str = weak_areas
 
+    leetcode_streak = user_context.get("leetcode_streak", current_streak)
+    applications_streak = user_context.get("applications_streak", 0)
+    project_streak = user_context.get("project_streak", 0)
+    longest_leetcode = user_context.get("longest_leetcode", longest_streak)
+
     context_block = f"""
 USER CONTEXT:
 - Name: {name}
@@ -65,8 +70,9 @@ USER CONTEXT:
 - Target companies: {companies_str}
 - Weak areas they want to improve: {weak_str}
 - Main goal: {main_goal}
-- Current check-in streak: {current_streak} day(s)
-- Longest streak ever: {longest_streak} day(s)
+- LeetCode streak: {leetcode_streak} day(s) (longest: {longest_leetcode})
+- Applications streak: {applications_streak} day(s)
+- Project streak: {project_streak} day(s)
 
 Always address them as {name}. Reference their target companies and weak areas naturally when relevant — don't force it every message, but bring it up when it adds value.
 """

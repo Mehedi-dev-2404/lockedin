@@ -47,3 +47,26 @@ def get_recent_checkins(telegram_id: int, limit: int = 7) -> list[dict]:
     except Exception as e:
         logger.error(f"get_recent_checkins failed for {telegram_id}: {e}")
         return []
+
+
+def upsert_todays_checkin(telegram_id: int, data: dict) -> dict | None:
+    """Update today's checkin row if it exists, create it if not."""
+    today = date.today().isoformat()
+    existing = get_todays_checkin(telegram_id)
+    try:
+        if existing:
+            response = (
+                supabase.table("checkins")
+                .update(data)
+                .eq("telegram_id", telegram_id)
+                .eq("date", today)
+                .execute()
+            )
+            return response.data[0] if response.data else None
+        else:
+            payload = {"telegram_id": telegram_id, "date": today, **data}
+            response = supabase.table("checkins").insert(payload).execute()
+            return response.data[0] if response.data else None
+    except Exception as e:
+        logger.error(f"upsert_todays_checkin failed for {telegram_id}: {e}")
+        return None
