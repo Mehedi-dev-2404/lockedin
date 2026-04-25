@@ -24,6 +24,7 @@ def create_user(telegram_id: int, username: str | None, full_name: str | None) -
         response = (
             supabase.table("users")
             .insert({
+                "id": telegram_id,
                 "telegram_id": telegram_id,
                 "username": username,
                 "full_name": full_name,
@@ -37,16 +38,10 @@ def create_user(telegram_id: int, username: str | None, full_name: str | None) -
         return None
 
 
-def update_user(telegram_id: int, **kwargs) -> dict | None:
+def update_user(telegram_id: int, **kwargs) -> bool | None:
     try:
-        response = (
-            supabase.table("users")
-            .update(kwargs)
-            .eq("telegram_id", telegram_id)
-            .select()
-            .execute()
-        )
-        return response.data[0] if response.data else None
+        supabase.table("users").update(kwargs).eq("telegram_id", telegram_id).execute()
+        return True
     except Exception as e:
         logger.error(f"update_user failed for {telegram_id}: {e}")
         return None

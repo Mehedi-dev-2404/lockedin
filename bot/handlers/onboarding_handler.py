@@ -81,9 +81,7 @@ async def get_university(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
 
 async def get_target_companies(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    raw = update.message.text.strip()
-    companies = [c.strip() for c in raw.split(",") if c.strip()]
-    context.user_data["target_companies"] = companies
+    context.user_data["target_companies"] = update.message.text.strip()
     await update.message.reply_text(
         "What are your weak areas right now? List them separated by commas.\n"
         "(e.g. dynamic programming, system design, behavioral interviews)"
@@ -92,9 +90,7 @@ async def get_target_companies(update: Update, context: ContextTypes.DEFAULT_TYP
 
 
 async def get_weak_areas(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    raw = update.message.text.strip()
-    weak_areas = [w.strip() for w in raw.split(",") if w.strip()]
-    context.user_data["weak_areas"] = weak_areas
+    context.user_data["weak_areas"] = update.message.text.strip()
     await update.message.reply_text(
         "Last one — what's your main goal for the next few months?\n"
         "(e.g. land a summer internship at a top tech company by March)"
@@ -102,9 +98,9 @@ async def get_weak_areas(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     return MAIN_GOAL
 
 
-async def get_main_goal(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def get_goals(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     telegram_id = update.effective_user.id
-    context.user_data["main_goal"] = update.message.text.strip()
+    context.user_data["goals"] = update.message.text.strip()
 
     result = update_user(
         telegram_id,
@@ -113,7 +109,7 @@ async def get_main_goal(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
         university=context.user_data.get("university"),
         target_companies=context.user_data.get("target_companies"),
         weak_areas=context.user_data.get("weak_areas"),
-        main_goal=context.user_data.get("main_goal"),
+        goals=context.user_data.get("goals"),
         is_onboarded=True,
     )
 
@@ -125,15 +121,13 @@ async def get_main_goal(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
         return ConversationHandler.END
 
     name = context.user_data.get("full_name", "")
-    companies = context.user_data.get("target_companies", [])
-    weak_areas = context.user_data.get("weak_areas", [])
-    companies_str = ", ".join(companies) if companies else "your target companies"
-    weak_str = ", ".join(weak_areas[:2]) if weak_areas else "your weak areas"
+    companies_str = context.user_data.get("target_companies") or "your target companies"
+    weak_str = context.user_data.get("weak_areas") or "your weak areas"
 
     await update.message.reply_text(
         f"Alright {name}, you're all set.\n\n"
         f"I've got your targets ({companies_str}) and I know {weak_str} "
-        f"{'are' if len(weak_areas) > 1 else 'is'} something you need to work on.\n\n"
+        f"is something you need to work on.\n\n"
         f"Here's how this works: check in with me daily. Tell me what you did, "
         f"what you're stuck on, or just send a message if you need to think something through. "
         f"I'll keep your streak going and call you out if you go quiet.\n\n"
@@ -158,7 +152,7 @@ def build_onboarding_handler() -> ConversationHandler:
             UNIVERSITY: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_university)],
             TARGET_COMPANIES: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_target_companies)],
             WEAK_AREAS: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_weak_areas)],
-            MAIN_GOAL: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_main_goal)],
+            MAIN_GOAL: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_goals)],
         },
         fallbacks=[CommandHandler("cancel", cancel)],
     )

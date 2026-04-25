@@ -65,12 +65,9 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     name = user.get("full_name") or user.get("username") or "Unknown"
     year = user.get("year_of_study", "—")
     university = user.get("university", "—")
-    targets = user.get("target_companies") or []
-    weak_areas = user.get("weak_areas") or []
-    goal = user.get("main_goal", "—")
-
-    targets_str = ", ".join(targets) if targets else "—"
-    weak_str = ", ".join(weak_areas) if weak_areas else "—"
+    targets_str = user.get("target_companies") or "—"
+    weak_str = user.get("weak_areas") or "—"
+    goal = user.get("goals") or "—"
 
     await update.message.reply_text(
         f"👤 Profile\n\n"

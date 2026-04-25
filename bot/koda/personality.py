@@ -49,14 +49,14 @@ def build_system_prompt(user_context: dict) -> str:
     name = user_context.get("full_name") or user_context.get("username") or "there"
     year = user_context.get("year_of_study", "unknown year")
     university = user_context.get("university", "their university")
-    target_companies = user_context.get("target_companies") or []
-    weak_areas = user_context.get("weak_areas") or []
-    main_goal = user_context.get("main_goal", "landing a SWE internship")
+    target_companies = user_context.get("target_companies") or "not specified yet"
+    weak_areas = user_context.get("weak_areas") or "not specified yet"
+    main_goal = user_context.get("goals", "landing a SWE internship")
     current_streak = user_context.get("current_streak", 0)
     longest_streak = user_context.get("longest_streak", 0)
 
-    companies_str = ", ".join(target_companies) if target_companies else "not specified yet"
-    weak_str = ", ".join(weak_areas) if weak_areas else "not specified yet"
+    companies_str = target_companies
+    weak_str = weak_areas
 
     context_block = f"""
 USER CONTEXT:

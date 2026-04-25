@@ -41,7 +41,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         "university": user.get("university"),
         "target_companies": user.get("target_companies"),
         "weak_areas": user.get("weak_areas"),
-        "main_goal": user.get("main_goal"),
+        "goals": user.get("goals"),
         "current_streak": streak.get("current_streak", 0),
         "longest_streak": streak.get("longest_streak", 0),
     }
