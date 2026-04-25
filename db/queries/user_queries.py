@@ -47,6 +47,21 @@ def update_user(telegram_id: int, **kwargs) -> bool | None:
         return None
 
 
+def get_all_active_users() -> list[dict]:
+    try:
+        response = (
+            supabase.table("users")
+            .select("*")
+            .eq("is_active", True)
+            .eq("is_onboarded", True)
+            .execute()
+        )
+        return response.data or []
+    except Exception as e:
+        logger.error(f"get_all_active_users failed: {e}")
+        return []
+
+
 def user_exists(telegram_id: int) -> bool:
     try:
         response = (
