@@ -162,8 +162,8 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      width: min(80vw, 900px);
-      height: min(80vw, 900px);
+      width: min(80vw, 1100px);
+      height: min(80vw, 1100px);
       z-index: 1;
       will-change: opacity;
     }
@@ -698,7 +698,7 @@
             On Vercel, serve koda.jpg from /public or repo root — Vercel serves
             root-level files at /, so if needed use /koda.jpg in production.
           -->
-          <img src="../koda.jpg" class="orb-img-spin" alt="Koda — AI accountability agent" draggable="false" loading="eager" decoding="async">
+          <img src="koda.jpg" class="orb-img-spin" alt="Koda — AI accountability agent" draggable="false" loading="eager" decoding="async" onerror="this.style.display='none';this.parentElement.style.background='radial-gradient(circle, #00C2FF 0%, #0044FF 40%, #000820 70%, #000000 100%)'">
         </div>
 
       </div>
@@ -760,7 +760,7 @@
           <div class="orb-chat-inner">
             <div class="orb-chat-glow"></div>
             <div class="orb-chat-clip">
-              <img src="../koda.jpg" class="orb-img-spin" alt="" aria-hidden="true" draggable="false" loading="eager" decoding="async">
+              <img src="koda.jpg" class="orb-img-spin" alt="" aria-hidden="true" draggable="false" loading="eager" decoding="async">
             </div>
           </div>
         </div>
@@ -771,7 +771,7 @@
           <!-- Avatar + identity header -->
           <div class="chat-header fade-up">
             <div class="chat-avatar">
-              <img src="../koda.jpg" class="chat-avatar-img" alt="Koda">
+              <img src="koda.jpg" class="chat-avatar-img" alt="Koda">
             </div>
             <div class="chat-identity">
               <span class="chat-name">Koda</span>
@@ -948,6 +948,21 @@
     }, { threshold: 0.3 });
 
     if (meetSection) chatObs.observe(meetSection);
+
+    /* ============================================================
+       FALLBACK — force visibility if IntersectionObserver doesn't fire
+       (e.g. on some mobile browsers or if scroll position is cached)
+    ============================================================ */
+    setTimeout(() => {
+      document.querySelectorAll('.fade-up').forEach(el => {
+        el.style.opacity = '1';
+        el.style.transform = 'translateY(0)';
+      });
+      chatMsgs.forEach(msg => {
+        msg.style.opacity = '1';
+        msg.style.transform = 'translateY(0)';
+      });
+    }, 3000);
   </script>
 
 </body>
