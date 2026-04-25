@@ -603,6 +603,14 @@
        RESPONSIVE — 768px breakpoint
     ============================================================ */
     @media (max-width: 768px) {
+      /* Hero: clamp to viewport, clip the orb */
+      .hero {
+        height: 100vh;
+        min-height: 100vh;
+        max-height: 100vh;
+        overflow: hidden;
+      }
+
       /* Hero headline smaller on mobile */
       .hero-headline {
         font-size: clamp(2.5rem, 8vw, 5rem);
