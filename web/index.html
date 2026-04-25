@@ -3,22 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Koda — the AI accountability agent for CS students grinding for top-tier internships. On Telegram. Always watching.">
+  <meta name="description" content="Koda — the AI accountability agent for CS students grinding for internships. On Telegram. Always watching.">
   <title>LockedIn — Lock in. Land the offer.</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,800;0,900;1,800;1,900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <!-- Stripe.js — loaded in head so Stripe() is available synchronously -->
-  <script src="https://js.stripe.com/v3/"></script>
 
   <style>
     /* ============================================================
        RESET
     ============================================================ */
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-    img { display: block; max-width: 100%; }
-    button, input { font: inherit; }
-    a { color: inherit; }
+    img    { display: block; max-width: 100%; }
+    a      { text-decoration: none; color: inherit; }
+    button { font: inherit; cursor: pointer; border: none; background: none; }
 
     /* ============================================================
        CUSTOM PROPERTIES
@@ -27,10 +25,12 @@
       --bg:      #000;
       --text:    #fff;
       --muted:   rgba(255, 255, 255, 0.6);
-      --subtle:  rgba(255, 255, 255, 0.4);
+      --subtle:  rgba(255, 255, 255, 0.35);
       --cyan:    #00C2FF;
       --blue:    #0044FF;
       --divider: rgba(255, 255, 255, 0.08);
+      /* Apple-grade ease-out — used everywhere */
+      --ease:    cubic-bezier(0.16, 1, 0.3, 1);
       --max-w:   1200px;
       --pad-x:   clamp(24px, 5vw, 80px);
     }
@@ -49,7 +49,7 @@
     }
 
     /* ============================================================
-       SVG NOISE OVERLAY — fixed, pointer-events none, ~4% opacity
+       NOISE GRAIN OVERLAY — fixed, pointer-events none, ~3% opacity
     ============================================================ */
     body::before {
       content: '';
@@ -57,7 +57,7 @@
       inset: 0;
       z-index: 9999;
       pointer-events: none;
-      opacity: 0.04;
+      opacity: 0.03;
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E");
       background-size: 200px 200px;
     }
@@ -71,35 +71,16 @@
       padding: 0 var(--pad-x);
     }
 
-    /* Hairline top divider + generous vertical breathing room on every section */
-    .section {
-      padding: 140px 0;
-      border-top: 1px solid var(--divider);
-    }
-
-    /* ============================================================
-       TYPOGRAPHY UTILITIES
-    ============================================================ */
     .mono { font-family: 'JetBrains Mono', monospace; }
 
-    /* Section number label — mono, muted, all-caps, tracked */
-    .label {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 11px;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-      color: var(--subtle);
-      display: block;
-      margin-bottom: 32px;
-    }
-
     /* ============================================================
-       SCROLL ANIMATIONS — fade + slide up on viewport enter
+       SCROLL FADE-UP — opacity 0 + translateY 30px → visible
+       Triggered by IntersectionObserver in JS (threshold 0.15)
     ============================================================ */
     .fade-up {
       opacity: 0;
-      transform: translateY(20px);
-      transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+      transform: translateY(30px);
+      transition: opacity 800ms var(--ease), transform 800ms var(--ease);
     }
     .fade-up.visible {
       opacity: 1;
@@ -109,127 +90,206 @@
     /* ============================================================
        KEYFRAMES
     ============================================================ */
-    @keyframes glow-pulse {
-      0%, 100% {
-        box-shadow: 0 0 22px rgba(0, 194, 255, 0.28),
-                    0 0 70px rgba(0, 194, 255, 0.07);
-      }
-      50% {
-        box-shadow: 0 0 46px rgba(0, 194, 255, 0.55),
-                    0 0 130px rgba(0, 194, 255, 0.14);
-      }
-    }
 
-    @keyframes orb-spin {
+    /* Orb: slow 40s rotation — feels like breathing, not spinning */
+    @keyframes orb-rotate {
       from { transform: rotate(0deg); }
       to   { transform: rotate(360deg); }
     }
 
-    @keyframes blink {
+    /* Orb: gentle scale pulse — 8s, barely perceptible, adds life */
+    @keyframes orb-pulse {
+      0%, 100% { transform: scale(1); }
+      50%       { transform: scale(1.02); }
+    }
+
+    /* CTA button: cyan glow breath */
+    @keyframes cta-glow {
+      0%, 100% { box-shadow: 0 0 30px rgba(0, 194, 255, 0.3); }
+      50%       { box-shadow: 0 0 60px rgba(0, 194, 255, 0.6); }
+    }
+
+    /* Online status dot */
+    @keyframes dot-pulse {
       0%, 100% { opacity: 1; }
-      50%       { opacity: 0; }
+      50%       { opacity: 0.3; }
     }
 
     /* ============================================================
-       BUTTONS
-    ============================================================ */
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 18px 42px;
-      border-radius: 10px;
-      font-family: 'Inter', sans-serif;
-      font-size: 1.0625rem;
-      font-weight: 700;
-      text-decoration: none;
-      cursor: pointer;
-      border: none;
-      letter-spacing: -0.01em;
-      transition: transform 0.2s ease, opacity 0.2s ease;
-      white-space: nowrap;
-    }
-    .btn:hover  { transform: translateY(-2px); opacity: 0.88; }
-    .btn:active { transform: translateY(0); }
-
-    .btn-white {
-      background: #fff;
-      color: #000;
-      animation: glow-pulse 3s ease-in-out infinite;
-    }
-
-    /* ============================================================
-       NAV
+       NAV — absolute over hero, 32px from edges
     ============================================================ */
     .nav {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 20;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 28px var(--pad-x);
-      position: relative;
-      z-index: 10;
+      padding: 32px;
     }
 
     .nav-wordmark {
-      font-size: 15px;
-      font-weight: 800;
-      letter-spacing: -0.03em;
-      text-decoration: none;
+      font-size: 14px;
+      font-weight: 400;
+      letter-spacing: -0.01em;
       color: #fff;
     }
 
     .nav-login {
       font-size: 14px;
-      font-weight: 500;
-      color: var(--muted);
-      text-decoration: none;
-      transition: color 0.2s;
+      font-weight: 400;
+      color: rgba(255, 255, 255, 0.65);
+      transition: color 0.25s var(--ease);
     }
     .nav-login:hover { color: #fff; }
 
     /* ============================================================
-       HERO
+       HERO — full viewport, orb dominates
     ============================================================ */
     .hero {
+      position: relative;
       height: 100vh;
       min-height: 700px;
-      overflow: hidden;         /* clips the orb at viewport bottom */
-      display: flex;
-      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ---- ORB POSITIONER — centred in hero, behind text ---- */
+    .orb-hero-positioner {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: min(80vw, 900px);
+      height: min(80vw, 900px);
+      z-index: 1;
+      will-change: opacity;
+    }
+
+    /* Pulse wrapper — scale only, so translate on parent is not overwritten */
+    .orb-hero-inner {
       position: relative;
+      width: 100%;
+      height: 100%;
+      animation: orb-pulse 8s ease-in-out infinite;
+      will-change: transform;
     }
 
-    .hero-body {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
+    /* ---- GLOW LAYERS — 4 stacked radial gradients ----
+       Each extends progressively further beyond the orb boundary.
+       Together they create true atmospheric light bleeding into the black.
+    ---- */
+    .orb-glow {
+      position: absolute;
+      border-radius: 50%;
+      pointer-events: none;
     }
 
-    /* Upper ~56% of hero-body — headline, subhead, CTA */
+    /* Immediate corona — tight, bright */
+    .orb-glow-1 {
+      inset: -8%;
+      background: radial-gradient(circle, rgba(0, 194, 255, 0.28) 0%, transparent 58%);
+      filter: blur(18px);
+      z-index: 0;
+    }
+
+    /* Mid glow — blue-shifted, wider */
+    .orb-glow-2 {
+      inset: -28%;
+      background: radial-gradient(circle, rgba(0, 68, 255, 0.22) 0%, transparent 52%);
+      filter: blur(48px);
+      z-index: 0;
+    }
+
+    /* Outer atmospheric — cyan, very soft */
+    .orb-glow-3 {
+      inset: -55%;
+      background: radial-gradient(circle, rgba(0, 194, 255, 0.11) 0%, transparent 48%);
+      filter: blur(80px);
+      z-index: 0;
+    }
+
+    /* Deep field — fills the hero background with faint blue light */
+    .orb-glow-4 {
+      inset: -90%;
+      background: radial-gradient(circle, rgba(0, 68, 255, 0.07) 0%, transparent 44%);
+      filter: blur(110px);
+      z-index: 0;
+    }
+
+    /* ---- CIRCULAR CLIP — the orb itself ---- */
+    .orb-hero-clip {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      overflow: hidden;
+    }
+
+    /* Rotation lives on the image — separate from clip and pulse */
+    .orb-img-spin {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      animation: orb-rotate 40s linear infinite;
+      will-change: transform;
+    }
+
+    /* ---- TEXT MASK ----
+       A soft black radial gradient dimming the orb directly behind the text.
+       Invisible as a shape — just reduces the orb luminance under the copy.
+    ---- */
+    .hero-text-mask {
+      position: absolute;
+      top: 38%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: min(1100px, 95vw);
+      height: 620px;
+      background: radial-gradient(
+        ellipse at center,
+        rgba(0, 0, 0, 0.7) 0%,
+        rgba(0, 0, 0, 0.45) 40%,
+        rgba(0, 0, 0, 0.15) 65%,
+        transparent 80%
+      );
+      filter: blur(40px);
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    /* ---- HERO CONTENT — text sits over the orb ---- */
     .hero-content {
-      flex: 0 0 56%;
+      position: relative;
+      top: 0;
+      left: 0;
+      transform: none;
+      width: 100%;
+      height: 100%;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
+      padding: 0 var(--pad-x);
+      padding-bottom: 10vh;
       text-align: center;
-      padding: 0 var(--pad-x) 20px;
+      z-index: 10;
+      pointer-events: none; /* pass through so orb glow stays interactive-free */
     }
-
-    /* Lower ~44% — orb starts here, bleeds past viewport bottom */
-    .hero-orb-zone {
-      flex: 1;
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
-    }
+    /* Re-enable pointer events only on the CTA */
+    .hero-content .hero-cta { pointer-events: auto; }
 
     .hero-headline {
-      font-size: clamp(3rem, 8vw, 7rem);
+      font-size: clamp(3.5rem, 10vw, 9rem);
       font-weight: 900;
       letter-spacing: -0.04em;
-      line-height: 1.0;
+      line-height: 0.95;
       margin-bottom: 28px;
+      /* Punch through the bright orb */
+      text-shadow: 0 2px 40px rgba(0, 0, 0, 0.6), 0 0 80px rgba(0, 0, 0, 0.3);
     }
     .hero-headline em { font-style: italic; }
 
@@ -239,13 +299,32 @@
       max-width: 520px;
       margin: 0 auto 44px;
       line-height: 1.65;
+      text-shadow: 0 1px 24px rgba(0, 0, 0, 0.5);
     }
 
-    /* Blinking cursor — step-end so it snaps rather than fades */
-    .cursor {
-      color: var(--cyan);
-      animation: blink 1.2s step-end infinite;
-      margin-left: 1px;
+    /* CTA button */
+    .hero-cta {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 18px 36px;
+      background: #fff;
+      color: #000;
+      font-family: 'Inter', sans-serif;
+      font-size: 1rem;
+      font-weight: 600;
+      border-radius: 12px;
+      letter-spacing: -0.01em;
+      cursor: pointer;
+      animation: cta-glow 3s ease-in-out infinite;
+      transition: transform 0.35s var(--ease), filter 0.35s var(--ease);
+    }
+    .hero-cta:hover {
+      transform: scale(1.035);
+      filter: brightness(0.93);
+    }
+    .hero-cta:active {
+      transform: scale(0.98);
     }
 
     .hero-fine-print {
@@ -254,431 +333,239 @@
       color: var(--subtle);
       margin-top: 20px;
       letter-spacing: 0.07em;
+      display: block;
     }
 
-    /* ---- ORB ---- */
-    .orb-wrap {
+    /* ============================================================
+       MEET KODA SECTION
+    ============================================================ */
+    .meet-section {
+      padding: 80px 0;
       position: relative;
-      width: min(65vw, 700px);
-      height: min(65vw, 700px);
-      flex-shrink: 0;
     }
 
-    /* Large blurred cyan glow halo behind the orb, bleeds into black */
-    .orb-halo {
+    /* Section number label */
+    .section-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--subtle);
+      display: block;
+      margin-bottom: 28px;
+      text-align: center;
+    }
+
+    .meet-head {
+      text-align: center;
+      margin-bottom: 80px;
+    }
+
+    .meet-headline {
+      font-size: clamp(2rem, 5vw, 4rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      margin-bottom: 24px;
+    }
+
+    .meet-subhead {
+      font-size: 1.0625rem;
+      color: var(--muted);
+      max-width: 600px;
+      margin: 0 auto;
+      line-height: 1.75;
+    }
+
+    /* ---- CHAT AREA — relative container for orb + bubbles ---- */
+    .chat-area {
+      position: relative;
+      display: flex;
+      justify-content: center;
+      min-height: 560px;
+      align-items: center;
+    }
+
+    /* ---- CHAT BACKGROUND ORB ----
+       Smaller (~400px), heavily blurred, very low opacity.
+       Reads as ambient atmosphere not a focal point.
+       Opacity animated to 0.3 via JS scroll handler.
+    ---- */
+    .orb-chat-positioner {
       position: absolute;
-      inset: -35%;
-      border-radius: 50%;
-      background: radial-gradient(
-        circle at center,
-        rgba(0, 194, 255, 0.16) 0%,
-        rgba(0, 68, 255, 0.07) 38%,
-        transparent 68%
-      );
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 400px;
+      height: 400px;
+      z-index: -1;
+      opacity: 0; /* JS-controlled via scroll — max 0.15 */
+      filter: blur(80px);
       pointer-events: none;
-      z-index: 0;
+      will-change: opacity;
     }
 
-    /* Circular clip + slow continuous rotation */
-    .orb-clip {
+    .orb-chat-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Glow for the chat orb — slightly warmer, more diffused */
+    .orb-chat-glow {
+      position: absolute;
+      inset: -45%;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(0, 194, 255, 0.32) 0%, transparent 58%);
+      filter: blur(50px);
+      pointer-events: none;
+    }
+
+    .orb-chat-clip {
       position: relative;
       z-index: 1;
       width: 100%;
       height: 100%;
       border-radius: 50%;
       overflow: hidden;
-      animation: orb-spin 30s linear infinite;
     }
 
-    .orb-img {
+    /* ---- CHAT BUBBLES WRAP — floats above the orb ---- */
+    .chat-bubbles-wrap {
+      position: relative;
+      z-index: 5;
+      max-width: 520px;
+      width: 100%;
+    }
+
+    /* Chat identity header */
+    .chat-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 36px;
+    }
+
+    .chat-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      overflow: hidden;
+      flex-shrink: 0;
+      border: 1px solid rgba(0, 194, 255, 0.25);
+    }
+
+    .chat-avatar-img {
       width: 100%;
       height: 100%;
       object-fit: cover;
     }
 
-    /* ============================================================
-       01 — THE PROBLEM
-    ============================================================ */
-    .problem-section { text-align: center; }
-
-    .problem-lines { margin-bottom: 48px; }
-
-    .problem-line {
-      font-size: clamp(1.6rem, 3.5vw, 2.75rem);
-      font-weight: 800;
-      letter-spacing: -0.025em;
-      line-height: 1.25;
-      margin-bottom: 6px;
-    }
-
-    .problem-sub {
-      font-size: clamp(1rem, 2vw, 1.1875rem);
-      color: var(--muted);
-      max-width: 460px;
-      margin: 0 auto;
-      line-height: 1.65;
-    }
-
-    /* ============================================================
-       02 — MEET KODA
-    ============================================================ */
-    .koda-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 80px;
-      align-items: center;
-    }
-
-    .koda-headline {
-      font-size: clamp(2rem, 4vw, 3.5rem);
-      font-weight: 800;
-      letter-spacing: -0.03em;
-      line-height: 1.12;
-      margin-bottom: 28px;
-    }
-
-    /* Body copy — left-aligned, not centred */
-    .koda-copy {
-      color: var(--muted);
-      font-size: 1.0625rem;
-      line-height: 1.78;
-    }
-
-    /* ---- Telegram chat mockup ---- */
-    .tg-chat {
-      background: #17212b;
-      border-radius: 18px;
-      overflow: hidden;
-      border: 1px solid rgba(255, 255, 255, 0.07);
-      max-width: 380px;
-      margin-left: auto;
-    }
-
-    .tg-topbar {
-      background: #232e3c;
-      padding: 12px 16px;
-      display: flex;
-      align-items: center;
-      gap: 11px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    }
-
-    .tg-avatar {
-      width: 38px;
-      height: 38px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, var(--blue) 0%, var(--cyan) 100%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 13px;
-      font-weight: 700;
-      color: #fff;
-      flex-shrink: 0;
-      letter-spacing: -0.03em;
-    }
-
-    .tg-meta    { display: flex; flex-direction: column; gap: 2px; }
-    .tg-name    { font-size: 14px; font-weight: 600; color: #fff; }
-    .tg-online  { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--cyan); }
-
-    .tg-messages {
-      padding: 16px;
+    .chat-identity {
       display: flex;
       flex-direction: column;
-      gap: 10px;
-      min-height: 300px;
-      max-height: 340px;
-      overflow-y: auto;
-    }
-    .tg-messages::-webkit-scrollbar { display: none; }
-
-    .tg-msg          { display: flex; flex-direction: column; }
-    .tg-msg.incoming { align-items: flex-start; }
-    .tg-msg.outgoing { align-items: flex-end; }
-
-    .tg-bubble {
-      padding: 9px 13px;
-      border-radius: 14px;
-      font-size: 13.5px;
-      line-height: 1.45;
-      max-width: 82%;
-      word-break: break-word;
+      gap: 3px;
     }
 
-    .tg-msg.incoming .tg-bubble {
-      background: #232e3c;
-      color: #e8eaed;
-      border-bottom-left-radius: 3px;
-    }
-
-    .tg-msg.outgoing .tg-bubble {
-      background: #2b5278;
-      color: #e8eaed;
-      border-bottom-right-radius: 3px;
-    }
-
-    .tg-ts {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 9.5px;
-      color: rgba(255, 255, 255, 0.28);
-      margin-top: 3px;
-      padding: 0 3px;
-    }
-
-    /* ============================================================
-       03 — FEATURES
-    ============================================================ */
-    .features-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 20px;
-    }
-
-    .feature-card {
-      padding: 32px 28px;
-      border: 1px solid var(--divider);
-      border-radius: 12px;
-      transition: border-color 0.25s ease;
-    }
-    .feature-card:hover { border-color: rgba(0, 194, 255, 0.22); }
-
-    .feature-icon  { margin-bottom: 20px; display: block; }
-    .feature-title { font-size: 1rem; font-weight: 700; letter-spacing: -0.015em; margin-bottom: 8px; }
-    .feature-desc  { font-size: 0.9375rem; color: var(--muted); line-height: 1.6; }
-
-    /* ============================================================
-       04 — SOCIAL PROOF
-    ============================================================ */
-    .proof-section { text-align: center; }
-
-    .proof-main {
-      font-size: clamp(1.2rem, 2.5vw, 1.75rem);
+    .chat-name {
+      font-size: 16px;
       font-weight: 600;
-      line-height: 1.65;
-      color: var(--muted);
-      max-width: 780px;
-      margin: 0 auto 28px;
-      letter-spacing: -0.01em;
+      color: #fff;
+      line-height: 1;
     }
-    .proof-main strong { color: var(--text); font-size: 1.08em; }
 
-    .proof-sub { font-size: 1.0625rem; color: var(--subtle); }
-
-    /* ============================================================
-       05 — PRICING
-    ============================================================ */
-    .pricing-intro {
+    .chat-status {
       font-family: 'JetBrains Mono', monospace;
       font-size: 11px;
-      letter-spacing: 0.12em;
-      color: var(--subtle);
-      text-align: center;
-      text-transform: uppercase;
-      margin-bottom: 52px;
-    }
-
-    .pricing-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 20px;
-      max-width: 820px;
-      margin: 0 auto;
-    }
-
-    .pricing-card {
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 18px;
-      padding: 44px 38px;
-      position: relative;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .pricing-card.featured {
-      border-color: var(--cyan);
-      box-shadow: 0 0 60px rgba(0, 194, 255, 0.07),
-                  inset 0 0 80px rgba(0, 194, 255, 0.018);
-    }
-
-    .pricing-badge {
-      position: absolute;
-      top: -13px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: var(--cyan);
-      color: #000;
-      font-family: 'Inter', sans-serif;
-      font-size: 10px;
-      font-weight: 800;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      padding: 4px 18px;
-      border-radius: 20px;
-      white-space: nowrap;
-    }
-
-    .pricing-tier {
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--subtle);
-      text-transform: uppercase;
-      letter-spacing: 0.14em;
-      margin-bottom: 18px;
-    }
-
-    .pricing-amount {
-      font-size: clamp(3rem, 5vw, 4.25rem);
-      font-weight: 900;
-      letter-spacing: -0.05em;
-      line-height: 1;
-      margin-bottom: 4px;
-    }
-
-    .pricing-per {
-      font-size: 1.1rem;
-      font-weight: 400;
-      color: var(--muted);
-      letter-spacing: -0.01em;
-    }
-
-    .pricing-save {
-      font-size: 13px;
       color: var(--cyan);
-      font-weight: 600;
-      margin-top: 8px;
-      min-height: 20px;
-      display: block;
-    }
-
-    .pricing-pitch {
-      font-size: 0.9375rem;
-      color: var(--muted);
-      line-height: 1.65;
-      margin: 20px 0 24px;
-    }
-
-    .pricing-features {
-      list-style: none;
-      margin-bottom: 36px;
-      flex: 1;
-    }
-
-    .pricing-features li {
-      font-size: 0.9rem;
-      color: var(--muted);
-      padding: 10px 0;
-      border-bottom: 1px solid var(--divider);
-      display: flex;
-      align-items: baseline;
-      gap: 10px;
-    }
-
-    .pricing-features li::before {
-      content: '\2014'; /* em dash */
-      font-family: 'JetBrains Mono', monospace;
-      color: var(--cyan);
-      font-size: 12px;
-      flex-shrink: 0;
-    }
-
-    .pricing-btn {
-      width: 100%;
-      padding: 17px;
-      border-radius: 10px;
-      font-family: 'Inter', sans-serif;
-      font-size: 0.9375rem;
-      font-weight: 700;
-      cursor: pointer;
-      border: none;
-      letter-spacing: -0.01em;
-      transition: transform 0.2s ease, opacity 0.2s ease;
-      margin-top: auto;
-    }
-    .pricing-btn:hover  { transform: translateY(-2px); opacity: 0.88; }
-    .pricing-btn:active { transform: translateY(0); }
-
-    .pricing-btn-default {
-      background: rgba(255, 255, 255, 0.07);
-      color: var(--text);
-      border: 1px solid rgba(255, 255, 255, 0.13);
-    }
-
-    .pricing-btn-featured {
-      background: var(--cyan);
-      color: #000;
-      animation: glow-pulse 3s ease-in-out infinite;
-    }
-
-    /* ============================================================
-       06 — FAQ
-    ============================================================ */
-    .faq-list {
-      max-width: 680px;
-      margin: 0 auto;
-    }
-
-    .faq-item { border-bottom: 1px solid var(--divider); }
-
-    .faq-question {
-      width: 100%;
-      background: none;
-      border: none;
-      color: var(--text);
-      font-family: 'Inter', sans-serif;
-      font-size: 1.0625rem;
-      font-weight: 600;
-      text-align: left;
-      padding: 26px 0;
-      cursor: pointer;
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      gap: 20px;
-      letter-spacing: -0.01em;
-      line-height: 1.4;
-      transition: color 0.2s;
+      gap: 5px;
     }
-    .faq-question:hover { color: var(--cyan); }
 
-    .faq-chevron {
-      flex-shrink: 0;
-      width: 18px;
-      height: 18px;
-      color: var(--subtle);
-      transition: transform 0.3s ease;
+    .online-dot {
+      font-size: 8px;
+      animation: dot-pulse 1.5s ease-in-out infinite;
+      display: inline-block;
     }
-    .faq-item.open .faq-chevron { transform: rotate(180deg); }
 
-    .faq-answer {
-      max-height: 0;
-      overflow: hidden;
-      transition: max-height 0.32s ease;
+    /* ---- MESSAGES ---- */
+    .chat-messages {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
     }
-    .faq-item.open .faq-answer { max-height: 240px; }
 
-    .faq-answer p {
-      padding-bottom: 28px;
-      color: var(--muted);
-      font-size: 0.9375rem;
-      line-height: 1.78;
+    /* Messages start hidden — JS staggers them in */
+    .chat-msg {
+      display: flex;
+      flex-direction: column;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 400ms var(--ease), transform 400ms var(--ease);
     }
+    .chat-msg.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .chat-msg.incoming { align-items: flex-start; }
+    .chat-msg.outgoing { align-items: flex-end; }
+
+    .bubble {
+      padding: 12px 16px;
+      font-size: 15px;
+      line-height: 1.5;
+      max-width: 75%;
+    }
+
+    /* Koda (incoming): muted dark grey on black */
+    .chat-msg.incoming .bubble {
+      background: rgba(255, 255, 255, 0.06);
+      color: #fff;
+      border-radius: 16px;
+      border-bottom-left-radius: 4px;
+    }
+
+    /* User (outgoing): subtle deep blue with cyan border */
+    .chat-msg.outgoing .bubble {
+      background: rgba(0, 68, 255, 0.25);
+      border: 1px solid rgba(0, 194, 255, 0.2);
+      color: #fff;
+      border-radius: 16px;
+      border-bottom-right-radius: 4px;
+    }
+
+    /* Mono timestamp */
+    .ts {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.3);
+      margin-top: 5px;
+      padding: 0 4px;
+    }
+    .chat-msg.outgoing .ts { text-align: right; }
 
     /* ============================================================
        FOOTER
     ============================================================ */
     .footer {
       border-top: 1px solid var(--divider);
-      padding: 52px var(--pad-x);
+      padding: 48px 32px;
     }
 
-    .footer-inner { max-width: var(--max-w); margin: 0 auto; }
+    .footer-inner {
+      max-width: var(--max-w);
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+    }
 
-    .footer-top {
+    .footer-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 28px;
     }
 
     .footer-wordmark {
@@ -686,7 +573,6 @@
       font-weight: 800;
       letter-spacing: -0.03em;
       color: var(--muted);
-      text-decoration: none;
     }
 
     .footer-tagline {
@@ -696,52 +582,84 @@
       letter-spacing: 0.07em;
     }
 
-    .footer-rule {
-      height: 1px;
-      background: var(--divider);
-      margin-bottom: 28px;
-    }
-
-    .footer-bottom {
+    .footer-links {
       display: flex;
-      align-items: center;
-      justify-content: space-between;
+      gap: 24px;
     }
-
-    .footer-links { display: flex; gap: 28px; }
 
     .footer-links a {
       font-size: 13px;
       color: var(--subtle);
-      text-decoration: none;
-      transition: color 0.2s;
+      transition: color 0.2s var(--ease);
     }
-    .footer-links a:hover { color: var(--muted); }
+    .footer-links a:hover { color: #fff; }
 
-    .footer-copy { font-size: 13px; color: var(--subtle); }
+    .footer-copy {
+      font-size: 13px;
+      color: var(--subtle);
+    }
 
     /* ============================================================
        RESPONSIVE — 768px breakpoint
     ============================================================ */
     @media (max-width: 768px) {
-      .section { padding: 88px 0; }
-
-      .hero-content { flex: 0 0 54%; }
-      .orb-wrap {
-        width: min(84vw, 460px);
-        height: min(84vw, 460px);
+      /* Hero: clamp to viewport, clip the orb */
+      .hero {
+        height: 100vh;
+        min-height: 100vh;
+        max-height: 100vh;
+        overflow: hidden;
       }
 
-      .koda-grid { grid-template-columns: 1fr; gap: 48px; }
-      .tg-chat   { max-width: 100%; margin: 0; }
+      /* Hero headline smaller on mobile */
+      .hero-headline {
+        font-size: clamp(2.5rem, 8vw, 5rem);
+      }
 
-      .features-grid { grid-template-columns: 1fr; gap: 14px; }
+      /* Hero: orb fills mobile viewport */
+      .orb-hero-positioner {
+        width: 95vw;
+        height: 95vw;
+      }
 
-      .pricing-grid { grid-template-columns: 1fr; max-width: 420px; }
+      .hero-text-mask {
+        width: 94vw;
+        height: 340px;
+      }
 
-      .footer-top,
-      .footer-bottom { flex-direction: column; gap: 14px; text-align: center; }
-      .footer-links  { flex-wrap: wrap; justify-content: center; gap: 16px; }
+      /* Meet section */
+      .meet-section { padding: 60px 0; }
+      .meet-head { margin-bottom: 56px; text-align: center; }
+      .meet-subhead { text-align: center; }
+
+      /* Chat orb smaller on mobile */
+      .orb-chat-positioner {
+        width: 280px;
+        height: 280px;
+      }
+
+      /* Chat area: allow content to flow naturally */
+      .chat-area { min-height: auto; }
+
+      .bubble { max-width: 85%; font-size: 14px; }
+
+      /* All text centred on mobile */
+      .chat-bubbles-wrap { text-align: center; }
+
+      /* Footer: stack on mobile */
+      .footer-row {
+        flex-direction: column;
+        gap: 12px;
+        text-align: center;
+      }
+
+      .footer-links {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 16px;
+      }
+
+      .footer { padding: 48px 24px; }
     }
   </style>
 </head>
@@ -749,467 +667,249 @@
 <body>
 
   <!-- ============================================================
-       HERO
+       SECTION 1: HERO
+       The orb is Koda. It watches. It glows. Text floats on top.
   ============================================================ -->
-  <section class="hero">
+  <section class="hero" id="hero">
 
+    <!-- Top bar — absolute, 32px from edges -->
     <nav class="nav">
       <a href="/" class="nav-wordmark">LockedIn</a>
-      <!-- REPLACE href with actual dashboard/login URL when auth is live -->
+      <!-- REPLACE with actual dashboard/login URL when auth is live -->
       <a href="#" class="nav-login">Login</a>
     </nav>
 
-    <div class="hero-body">
+    <!-- THE ORB — z-index 1, behind everything else -->
+    <div class="orb-hero-positioner" id="orb-hero">
+      <div class="orb-hero-inner">
 
-      <!-- Upper 56% — headline, subhead, CTA, centred -->
-      <div class="hero-content">
-        <h1 class="hero-headline"><em>Lock in.</em> Land the offer.</h1>
-        <p class="hero-subhead">
-          The AI accountability agent for CS students grinding for internships.
-          On Telegram. Always watching<span class="cursor">|</span>
-        </p>
-        <a href="https://t.me/lockedingrind_bot" class="btn btn-white" target="_blank" rel="noopener">
-          Start grinding &rarr;
-        </a>
-        <p class="hero-fine-print">Free 7-day trial. Cancel anytime.</p>
-      </div>
+        <!-- 4 stacked glow layers — atmospheric light bleeding into black -->
+        <div class="orb-glow orb-glow-1"></div>
+        <div class="orb-glow orb-glow-2"></div>
+        <div class="orb-glow orb-glow-3"></div>
+        <div class="orb-glow orb-glow-4"></div>
 
-      <!-- Lower 44% — Koda orb bleeds past viewport bottom (clipped by hero overflow:hidden) -->
-      <div class="hero-orb-zone">
-        <div class="orb-wrap">
-          <div class="orb-halo"></div>
-          <div class="orb-clip">
-            <!-- /koda.jpg is already in the repo root — served as-is by Vercel -->
-            <img src="./koda.jpg" alt="Koda — AI accountability agent" class="orb-img">
-          </div>
+        <!-- Orb image — circular clip, slow rotation -->
+        <div class="orb-hero-clip">
+          <!--
+            koda.jpg is in the repo root.
+            web/index2.html is one level deep in /web/, so path is ../koda.jpg.
+            On Vercel, serve koda.jpg from /public or repo root — Vercel serves
+            root-level files at /, so if needed use /koda.jpg in production.
+          -->
+          <img src="../koda.jpg" class="orb-img-spin" alt="Koda — AI accountability agent" draggable="false">
         </div>
-      </div>
 
+      </div>
     </div>
+
+    <!-- TEXT MASK — softens the orb directly behind the copy for readability -->
+    <div class="hero-text-mask" aria-hidden="true"></div>
+
+    <!-- HERO CONTENT — layered above orb (z-index 10) -->
+    <div class="hero-content">
+      <!--
+        "Lock in" is italic per spec.
+        Headline size: clamp(3.5rem, 10vw, 9rem) — massive.
+      -->
+      <h1 class="hero-headline"><em>Lock in.</em> Land the offer.</h1>
+      <p class="hero-subhead">
+        The AI accountability agent for CS students grinding for internships.
+        On Telegram. Always watching.
+      </p>
+      <!--
+        REPLACE href — Telegram bot URL.
+        Current placeholder: https://t.me/LockedInKodaBot
+        See also: TELEGRAM_BOT_URL constant in <script> below.
+      -->
+      <a href="https://t.me/LockedInKodaBot" class="hero-cta" target="_blank" rel="noopener">
+        Start grinding &rarr;
+      </a>
+      <span class="hero-fine-print mono">Free 7-day trial. Cancel anytime.</span>
+    </div>
+
   </section><!-- /hero -->
 
 
   <!-- ============================================================
-       01 — THE PROBLEM
+       SECTION 2: MEET KODA
+       Chat bubbles float on black. Small orb glows behind them.
   ============================================================ -->
-  <section class="section problem-section">
-    <div class="container fade-up">
-      <span class="label">01 &rarr; The Problem</span>
-      <div class="problem-lines">
-        <p class="problem-line">You opened LeetCode 4 times this week.</p>
-        <p class="problem-line">You solved 0 problems.</p>
-        <p class="problem-line">Applications open in 6 weeks.</p>
-      </div>
-      <p class="problem-sub">
-        You don't need another productivity app. You need someone watching.
-      </p>
-    </div>
-  </section>
-
-
-  <!-- ============================================================
-       02 — MEET KODA
-  ============================================================ -->
-  <section class="section">
+  <section class="meet-section" id="meet">
     <div class="container">
-      <span class="label fade-up">02 &rarr; Meet Koda</span>
-      <div class="koda-grid">
 
-        <!-- Left col — copy (left-aligned per spec) -->
-        <div class="fade-up">
-          <h2 class="koda-headline">Koda doesn't ask how you're feeling.</h2>
-          <p class="koda-copy">
-            It asks if you've done your two LeetCode problems today.
-            It remembers you said you wanted Goldman.
-            It nudges you at 8pm when you go quiet.
-            It logs every application you mention.
-            It's the senior dev you wish you had on speed dial.
-          </p>
-        </div>
+      <!-- Section heading -->
+      <div class="meet-head">
+        <span class="section-label mono fade-up">01 &rarr; Meet Koda</span>
+        <h2 class="meet-headline fade-up">Koda doesn't ask how you're feeling.</h2>
+        <p class="meet-subhead fade-up">
+          It asks if you've done your two LeetCode problems today.
+          It remembers you said you wanted Goldman.
+          It nudges you at 8pm when you go quiet.
+          It logs every application you mention.
+          It's the senior dev you wish you had on speed dial.
+        </p>
+      </div>
 
-        <!-- Right col — Telegram dark-mode chat mockup -->
-        <div class="fade-up">
-          <div class="tg-chat" id="tg-chat">
-            <div class="tg-topbar">
-              <div class="tg-avatar">K</div>
-              <div class="tg-meta">
-                <span class="tg-name">Koda</span>
-                <span class="tg-online">online</span>
-              </div>
+      <!-- Chat area — background orb + floating bubbles -->
+      <div class="chat-area">
+
+        <!-- Background orb — opacity 0, JS fades to 0.3 as section enters view -->
+        <div class="orb-chat-positioner" id="orb-chat">
+          <div class="orb-chat-inner">
+            <div class="orb-chat-glow"></div>
+            <div class="orb-chat-clip">
+              <img src="../koda.jpg" class="orb-img-spin" alt="" aria-hidden="true" draggable="false">
             </div>
-            <!-- Messages injected and typed character-by-character by JS on viewport enter -->
-            <div class="tg-messages" id="tg-messages"></div>
           </div>
         </div>
 
-      </div>
-    </div>
-  </section>
+        <!-- Floating chat bubbles — no phone chrome, no Telegram window -->
+        <div class="chat-bubbles-wrap">
+
+          <!-- Avatar + identity header -->
+          <div class="chat-header fade-up">
+            <div class="chat-avatar">
+              <img src="../koda.jpg" class="chat-avatar-img" alt="Koda">
+            </div>
+            <div class="chat-identity">
+              <span class="chat-name">Koda</span>
+              <span class="chat-status">
+                <span class="online-dot">&#9679;</span>
+                <span class="mono">online</span>
+              </span>
+            </div>
+          </div>
+
+          <!-- Messages — opacity 0 by default, JS staggers them in -->
+          <div class="chat-messages" id="chat-messages">
+
+            <div class="chat-msg incoming">
+              <div class="bubble">morning. you said 2 leetcode before lectures. it&rsquo;s 9:47.</div>
+              <span class="ts mono">09:47</span>
+            </div>
+
+            <div class="chat-msg outgoing">
+              <div class="bubble">did one. medium. dynamic programming</div>
+              <span class="ts mono">09:51</span>
+            </div>
+
+            <div class="chat-msg incoming">
+              <div class="bubble">noted. 1/2. streak: 12 days. how&rsquo;s the goldman superday prep?</div>
+              <span class="ts mono">09:51</span>
+            </div>
+
+            <div class="chat-msg outgoing">
+              <div class="bubble">behavioural questions are killing me</div>
+              <span class="ts mono">09:53</span>
+            </div>
+
+            <div class="chat-msg incoming">
+              <div class="bubble">ok. 3 STAR stories by friday. i&rsquo;ll check in thursday 8pm.</div>
+              <span class="ts mono">09:53</span>
+            </div>
+
+          </div><!-- /chat-messages -->
+        </div><!-- /chat-bubbles-wrap -->
+      </div><!-- /chat-area -->
+
+    </div><!-- /container -->
+  </section><!-- /meet -->
 
 
   <!-- ============================================================
-       03 — WHAT KODA ACTUALLY DOES
-  ============================================================ -->
-  <section class="section">
-    <div class="container">
-      <span class="label fade-up">03 &rarr; What Koda Actually Does</span>
-      <div class="features-grid fade-up">
-
-        <div class="feature-card">
-          <span class="feature-icon">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none"
-                 stroke="#00C2FF" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"/>
-              <polyline points="12 6 12 12 16 14"/>
-            </svg>
-          </span>
-          <p class="feature-title">Daily check-ins</p>
-          <p class="feature-desc">Morning, midday, evening. On Telegram. Like clockwork.</p>
-        </div>
-
-        <div class="feature-card">
-          <span class="feature-icon">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none"
-                 stroke="#00C2FF" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="16 18 22 12 16 6"/>
-              <polyline points="8 6 2 12 8 18"/>
-            </svg>
-          </span>
-          <p class="feature-title">Automatic LeetCode tracking</p>
-          <p class="feature-desc">Mention you solved a problem. Koda logs it. Streak counted.</p>
-        </div>
-
-        <div class="feature-card">
-          <span class="feature-icon">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none"
-                 stroke="#00C2FF" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-              <polyline points="14 2 14 8 20 8"/>
-              <line x1="16" y1="13" x2="8" y2="13"/>
-              <line x1="16" y1="17" x2="8" y2="17"/>
-            </svg>
-          </span>
-          <p class="feature-title">Application logging</p>
-          <p class="feature-desc">Tell Koda you applied to Meta. It remembers. Forever.</p>
-        </div>
-
-        <div class="feature-card">
-          <span class="feature-icon">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none"
-                 stroke="#00C2FF" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-            </svg>
-          </span>
-          <p class="feature-title">8pm nudges</p>
-          <p class="feature-desc">Gone quiet? Koda notices. You'll get a message.</p>
-        </div>
-
-        <div class="feature-card">
-          <span class="feature-icon">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none"
-                 stroke="#00C2FF" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-              <ellipse cx="12" cy="5" rx="9" ry="3"/>
-              <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
-              <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
-            </svg>
-          </span>
-          <p class="feature-title">Long memory</p>
-          <p class="feature-desc">Your target companies. Your weak areas. Your goals. Locked in.</p>
-        </div>
-
-        <div class="feature-card">
-          <span class="feature-icon">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none"
-                 stroke="#00C2FF" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="4 17 10 11 4 5"/>
-              <line x1="12" y1="19" x2="20" y2="19"/>
-            </svg>
-          </span>
-          <p class="feature-title">Senior dev energy</p>
-          <p class="feature-desc">Direct, dry, never preachy. Built by people who've been through it.</p>
-        </div>
-
-      </div>
-    </div>
-  </section>
-
-
-  <!-- ============================================================
-       04 — BUILT FOR THE GRIND
-  ============================================================ -->
-  <section class="section proof-section">
-    <div class="container fade-up">
-      <span class="label">04 &rarr; Built for the Grind</span>
-      <p class="proof-main">
-        Built for CS students chasing offers from
-        <strong>Google</strong>, <strong>Meta</strong>, <strong>Goldman Sachs</strong>,
-        <strong>JPMorgan</strong>, <strong>Citadel</strong>, <strong>Jane Street</strong>.
-      </p>
-      <p class="proof-sub">
-        1st year? 2nd year? Final year scrambling? Koda doesn't care. Lock in.
-      </p>
-    </div>
-  </section>
-
-
-  <!-- ============================================================
-       05 — PRICING
-  ============================================================ -->
-  <section class="section">
-    <div class="container fade-up">
-      <span class="label">05 &rarr; Pricing</span>
-      <p class="pricing-intro">7-day free trial on both plans &nbsp;&middot;&nbsp; Cancel anytime.</p>
-
-      <div class="pricing-grid">
-
-        <!-- TIER 1 — Monthly -->
-        <div class="pricing-card">
-          <p class="pricing-tier">Monthly</p>
-          <p class="pricing-amount">&pound;9<span class="pricing-per">/month</span></p>
-          <!-- spacer keeps layout aligned with yearly card's save line -->
-          <span class="pricing-save">&nbsp;</span>
-          <p class="pricing-pitch">Full access. No strings. Try it for a week, keep it if it's working.</p>
-          <ul class="pricing-features">
-            <li>Full Koda access on Telegram</li>
-            <li>Daily check-ins + evening nudges</li>
-            <li>LeetCode streak tracking</li>
-            <li>Application log + status updates</li>
-            <li>Persistent memory across all sessions</li>
-          </ul>
-          <!-- REPLACE 'PRICE_ID_MONTHLY' with your actual Stripe price ID -->
-          <button class="pricing-btn pricing-btn-default"
-                  onclick="handleCheckout('PRICE_ID_MONTHLY')">
-            Start 7-day trial &rarr;
-          </button>
-        </div>
-
-        <!-- TIER 2 — Yearly (recommended) -->
-        <div class="pricing-card featured">
-          <span class="pricing-badge">Recommended</span>
-          <p class="pricing-tier">Yearly</p>
-          <p class="pricing-amount">&pound;69<span class="pricing-per">/year</span></p>
-          <span class="pricing-save">save &pound;39</span>
-          <p class="pricing-pitch">Two months free. Lock in for the full internship cycle.</p>
-          <ul class="pricing-features">
-            <li>Full Koda access on Telegram</li>
-            <li>Daily check-ins + evening nudges</li>
-            <li>LeetCode streak tracking</li>
-            <li>Application log + status updates</li>
-            <li>Persistent memory across all sessions</li>
-          </ul>
-          <!-- REPLACE 'PRICE_ID_YEARLY' with your actual Stripe price ID -->
-          <button class="pricing-btn pricing-btn-featured"
-                  onclick="handleCheckout('PRICE_ID_YEARLY')">
-            Start 7-day trial &rarr;
-          </button>
-        </div>
-
-      </div>
-    </div>
-  </section>
-
-
-  <!-- ============================================================
-       06 — FAQ
-  ============================================================ -->
-  <section class="section">
-    <div class="container fade-up">
-      <span class="label">06 &rarr; FAQ</span>
-      <div class="faq-list">
-
-        <div class="faq-item">
-          <button class="faq-question">
-            Is this just ChatGPT?
-            <svg class="faq-chevron" viewBox="0 0 24 24" fill="none"
-                 stroke="currentColor" stroke-width="2" stroke-linecap="round">
-              <polyline points="6 9 12 15 18 9"/>
-            </svg>
-          </button>
-          <div class="faq-answer">
-            <p>No. ChatGPT forgets you the moment you close the tab. Koda remembers your target companies, your weak areas, your goals, and every application you've mentioned. It also messages you first.</p>
-          </div>
-        </div>
-
-        <div class="faq-item">
-          <button class="faq-question">
-            Why Telegram?
-            <svg class="faq-chevron" viewBox="0 0 24 24" fill="none"
-                 stroke="currentColor" stroke-width="2" stroke-linecap="round">
-              <polyline points="6 9 12 15 18 9"/>
-            </svg>
-          </button>
-          <div class="faq-answer">
-            <p>Because you're already on it. No new app. No new password. Koda lives where your group chats live.</p>
-          </div>
-        </div>
-
-        <div class="faq-item">
-          <button class="faq-question">
-            Does this actually work?
-            <svg class="faq-chevron" viewBox="0 0 24 24" fill="none"
-                 stroke="currentColor" stroke-width="2" stroke-linecap="round">
-              <polyline points="6 9 12 15 18 9"/>
-            </svg>
-          </button>
-          <div class="faq-answer">
-            <p>It works if you reply. Koda is accountability, not magic. The students who message back daily are the ones landing offers.</p>
-          </div>
-        </div>
-
-        <div class="faq-item">
-          <button class="faq-question">
-            What about my privacy?
-            <svg class="faq-chevron" viewBox="0 0 24 24" fill="none"
-                 stroke="currentColor" stroke-width="2" stroke-linecap="round">
-              <polyline points="6 9 12 15 18 9"/>
-            </svg>
-          </button>
-          <div class="faq-answer">
-            <p>Your conversations are encrypted in transit and stored securely. We don't sell data. We don't train models on your chats.</p>
-          </div>
-        </div>
-
-        <div class="faq-item">
-          <button class="faq-question">
-            Can I cancel?
-            <svg class="faq-chevron" viewBox="0 0 24 24" fill="none"
-                 stroke="currentColor" stroke-width="2" stroke-linecap="round">
-              <polyline points="6 9 12 15 18 9"/>
-            </svg>
-          </button>
-          <div class="faq-answer">
-            <p>Yes. One click. No retention dark patterns. We're not that company.</p>
-          </div>
-        </div>
-
-        <div class="faq-item">
-          <button class="faq-question">
-            I'm a 1st year. Is this for me?
-            <svg class="faq-chevron" viewBox="0 0 24 24" fill="none"
-                 stroke="currentColor" stroke-width="2" stroke-linecap="round">
-              <polyline points="6 9 12 15 18 9"/>
-            </svg>
-          </button>
-          <div class="faq-answer">
-            <p>Especially you. The students who lock in early are the ones who don't panic in 3rd year.</p>
-          </div>
-        </div>
-
-      </div>
-    </div>
-  </section>
-
-
-  <!-- ============================================================
-       FOOTER
+       SECTION 3: FOOTER
   ============================================================ -->
   <footer class="footer">
     <div class="footer-inner">
-      <div class="footer-top">
-        <a href="/" class="footer-wordmark">LockedIn</a>
-        <span class="footer-tagline">Lock in. Land the offer.</span>
+
+      <!-- Row 1: wordmark + tagline -->
+      <div class="footer-row">
+        <span class="footer-wordmark">LockedIn</span>
+        <span class="footer-tagline mono">Lock in. Land the offer.</span>
       </div>
-      <div class="footer-rule"></div>
-      <div class="footer-bottom">
+
+      <!-- Row 2: links + copyright -->
+      <div class="footer-row">
         <div class="footer-links">
-          <!-- REPLACE with actual policy page URLs when ready -->
+          <!-- REPLACE with actual policy page URLs -->
           <a href="#">Terms</a>
           <a href="#">Privacy</a>
           <a href="mailto:hello@lockedin.so">Contact</a>
         </div>
         <span class="footer-copy">&copy; 2026 LockedIn</span>
       </div>
+
     </div>
   </footer>
 
 
   <script>
     /* ============================================================
-       CONFIGURATION — REPLACE ALL PLACEHOLDERS BEFORE GOING LIVE
+       PLACEHOLDERS — REPLACE BEFORE GOING LIVE
        ============================================================
 
-       STRIPE_PUBLISHABLE_KEY  — Stripe Dashboard > Developers > API Keys
-                                 test:  pk_test_...
-                                 live:  pk_live_...
+       TELEGRAM_BOT_URL
+         Current value: https://t.me/LockedInKodaBot
+         Find & replace in two places:
+           1. The .hero-cta href attribute in the HTML above
+           2. The constant below (if you use it programmatically)
 
-       PRICE_ID_MONTHLY        — Stripe Dashboard > Products
-                                 e.g.  price_1ABCxxx...
-
-       PRICE_ID_YEARLY         — Stripe Dashboard > Products
-                                 e.g.  price_1XYZxxx...
-
-       TELEGRAM_BOT_URL        — already live: https://t.me/lockedingrind_bot
-
-       FASTAPI_WEBHOOK_URL     — Railway backend base URL, no trailing slash
-                                 e.g.  https://lockedin-api.up.railway.app
-                                 Expects POST /create-checkout-session
-                                 Body:   { price_id, success_url, cancel_url }
-                                 Return: { session_id }
-
-                                 This URL is also the base for any waitlist /
-                                 form submissions your backend handles.
+       That's it for this page — no Stripe, no backend calls here.
     ============================================================ */
-
-    // REPLACE: your Stripe publishable key
-    const STRIPE_PUBLISHABLE_KEY = 'STRIPE_PUBLISHABLE_KEY_HERE';
-
-    // REPLACE: price IDs from Stripe Dashboard > Products
-    const PRICE_ID_MONTHLY = 'PRICE_ID_MONTHLY';
-    const PRICE_ID_YEARLY  = 'PRICE_ID_YEARLY';
-
-    // Telegram bot — already live
-    const TELEGRAM_BOT_URL = 'https://t.me/lockedingrind_bot';
-
-    // REPLACE: Railway FastAPI backend URL (no trailing slash)
-    const FASTAPI_WEBHOOK_URL = 'FASTAPI_WEBHOOK_URL_HERE';
+    const TELEGRAM_BOT_URL = 'https://t.me/LockedInKodaBot'; // REPLACE
 
     /* ============================================================
-       STRIPE CHECKOUT
-       Flow: button click -> POST /create-checkout-session on FastAPI
-             -> receive session_id -> stripe.redirectToCheckout
+       ELEMENT REFERENCES
     ============================================================ */
-    const stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
+    const heroSection = document.getElementById('hero');
+    const meetSection = document.getElementById('meet');
+    const orbHero     = document.getElementById('orb-hero');
+    const orbChat     = document.getElementById('orb-chat');
+    const chatMsgs    = document.querySelectorAll('.chat-msg');
 
-    async function handleCheckout(priceId) {
-      try {
-        const res = await fetch(`${FASTAPI_WEBHOOK_URL}/create-checkout-session`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            price_id:    priceId,
-            success_url: `${window.location.origin}/?checkout=success`,
-            cancel_url:  window.location.origin,
-          }),
-        });
+    /* ============================================================
+       SCROLL ANIMATION — rAF-based for smooth 60fps updates
 
-        if (!res.ok) throw new Error(`Server responded with ${res.status}`);
+       Hero orb: fades OUT as the hero exits the viewport.
+         opacity = 1 at scrollY 0, reaches 0 when hero is ~75% scrolled away.
 
-        const { session_id } = await res.json();
-        await stripe.redirectToCheckout({ sessionId: session_id });
+       Chat orb: fades IN as the meet section enters the viewport.
+         opacity rises from 0 to 0.3 as the section scrolls to centre.
+    ============================================================ */
+    let scrollTicking = false;
 
-      } catch (err) {
-        console.error('[LockedIn] Checkout error:', err);
-        // Inline error — no obnoxious alerts
-        const existing = document.getElementById('checkout-error');
-        if (!existing) {
-          const msg = document.createElement('p');
-          msg.id = 'checkout-error';
-          msg.textContent = 'Checkout unavailable right now. Try again shortly.';
-          msg.style.cssText = [
-            'text-align:center',
-            'color:rgba(255,255,255,0.5)',
-            'font-size:14px',
-            'margin-top:16px',
-          ].join(';');
-          document.querySelector('.pricing-grid').insertAdjacentElement('afterend', msg);
-        }
+    function onScroll() {
+      if (!scrollTicking) {
+        requestAnimationFrame(applyScroll);
+        scrollTicking = true;
       }
     }
 
+    function applyScroll() {
+      const scrollY  = window.scrollY;
+      const heroH    = heroSection.offsetHeight;
+      const vh       = window.innerHeight;
+
+      /* Hero orb fade-out — multiply by 1.4 so it fully disappears before section ends */
+      const heroFade = Math.max(0, 1 - (scrollY / heroH) * 1.4);
+      orbHero.style.opacity = heroFade;
+
+      /* Chat orb fade-in — peaks at 0.3 opacity when section centre hits viewport centre */
+      const meetRect    = meetSection.getBoundingClientRect();
+      const meetProgress = Math.max(0, Math.min(1, (vh - meetRect.top) / (vh * 0.75)));
+      orbChat.style.opacity = (meetProgress * 0.12).toFixed(3);
+
+      scrollTicking = false;
+    }
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    /* Initialise on load in case page is not at top */
+    applyScroll();
+
     /* ============================================================
-       SCROLL FADE-UP
-       IntersectionObserver fires once per element at 8% visibility.
+       FADE-UP — IntersectionObserver for .fade-up elements
+       threshold 0.15 = fires when 15% of element is visible
     ============================================================ */
     const fadeObs = new IntersectionObserver((entries) => {
       entries.forEach(e => {
@@ -1218,113 +918,35 @@
           fadeObs.unobserve(e.target);
         }
       });
-    }, { threshold: 0.08 });
+    }, { threshold: 0.15 });
 
     document.querySelectorAll('.fade-up').forEach(el => fadeObs.observe(el));
 
     /* ============================================================
-       TELEGRAM CHAT TYPING ANIMATION
-       Fires once when .tg-chat is 35% in viewport.
-       Each message types character-by-character (28ms/char),
-       with 550ms pause between messages.
+       CHAT MESSAGES — staggered fade-in when meet section is 30% visible
+       Each bubble: 400ms ease-out (see CSS), 700ms between bubbles.
+       First message delayed 350ms to let the chat-header fade-up settle first.
     ============================================================ */
-    const TG_MESSAGES = [
-      {
-        type: 'incoming',
-        text: "morning. you said 2 leetcode before lectures. it's 9:47.",
-        time: '09:47',
-      },
-      {
-        type: 'outgoing',
-        text: 'did one. medium. dynamic programming',
-        time: '09:51',
-      },
-      {
-        type: 'incoming',
-        text: "noted. 1/2. streak: 12 days. how's the goldman superday prep?",
-        time: '09:51',
-      },
-      {
-        type: 'outgoing',
-        text: 'behavioural questions are killing me',
-        time: '09:53',
-      },
-      {
-        type: 'incoming',
-        text: "ok. 3 STAR stories by friday. i'll check in thursday 8pm.",
-        time: '09:53',
-      },
-    ];
+    let chatAnimated = false;
 
-    let chatStarted = false;
-
-    function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-
-    async function typeInto(el, text, speed) {
-      for (const ch of text) {
-        el.textContent += ch;
-        await sleep(speed);
-      }
-    }
-
-    async function runChatAnimation() {
-      if (chatStarted) return;
-      chatStarted = true;
-
-      const container = document.getElementById('tg-messages');
-      container.innerHTML = '';
-
-      for (const msg of TG_MESSAGES) {
-        await sleep(550);
-
-        const row    = document.createElement('div');
-        const bubble = document.createElement('span');
-        const ts     = document.createElement('span');
-
-        row.className    = `tg-msg ${msg.type}`;
-        bubble.className = 'tg-bubble';
-        ts.className     = 'tg-ts mono';
-        ts.textContent   = msg.time;
-
-        row.appendChild(bubble);
-        row.appendChild(ts);
-        container.appendChild(row);
-        container.scrollTop = container.scrollHeight;
-
-        await typeInto(bubble, msg.text, 28);
-      }
+    function animateChat() {
+      if (chatAnimated) return;
+      chatAnimated = true;
+      chatMsgs.forEach((msg, i) => {
+        setTimeout(() => msg.classList.add('visible'), 350 + i * 700);
+      });
     }
 
     const chatObs = new IntersectionObserver((entries) => {
       entries.forEach(e => {
         if (e.isIntersecting) {
-          runChatAnimation();
-          chatObs.unobserve(e.target);
+          animateChat();
+          chatObs.disconnect();
         }
       });
-    }, { threshold: 0.35 });
+    }, { threshold: 0.3 });
 
-    const chatEl = document.getElementById('tg-chat');
-    if (chatEl) chatObs.observe(chatEl);
-
-    /* ============================================================
-       FAQ ACCORDION
-       One-open-at-a-time. Smooth max-height transition via CSS.
-    ============================================================ */
-    document.querySelectorAll('.faq-question').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const item   = btn.closest('.faq-item');
-        const isOpen = item.classList.contains('open');
-
-        // Close all open items first
-        document.querySelectorAll('.faq-item.open').forEach(open => {
-          open.classList.remove('open');
-        });
-
-        // Re-open the clicked one unless it was already open
-        if (!isOpen) item.classList.add('open');
-      });
-    });
+    if (meetSection) chatObs.observe(meetSection);
   </script>
 
 </body>
