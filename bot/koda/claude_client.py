@@ -1,14 +1,14 @@
 import json
 import logging
 import anthropic
-from config.settings import ANTHROPIC_API_KEY, CLAUDE_MODEL, CLAUDE_MAX_TOKENS
+from config.settings import CLAUDE_MODEL, CLAUDE_MAX_TOKENS
+from bot.koda.anthropic_client import anthropic_client
 from bot.koda.personality import build_system_prompt
+from bot.koda.utils import clean_json, get_display_name
 from db.queries.message_queries import save_message, get_recent_messages
 from db.queries.user_queries import get_user, update_user
 
 logger = logging.getLogger(__name__)
-
-_client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
 _INTENT_CLASSIFIER_SYSTEM = """You are an intent classifier. Given a user message, extract any of the following activities if mentioned. Respond ONLY with valid JSON, nothing else.
 
@@ -50,7 +50,7 @@ def get_koda_response(telegram_id: int, user_message: str, user_context: dict) -
     messages = history + [{"role": "user", "content": user_message}]
 
     try:
-        message = _client.messages.create(
+        message = anthropic_client.messages.create(
             model=CLAUDE_MODEL,
             max_tokens=CLAUDE_MAX_TOKENS,
             system=system_prompt,
@@ -80,7 +80,7 @@ def classify_intent(user_message: str) -> dict:
     """Run a lightweight classifier to extract activity intent from a message."""
     raw = ""
     try:
-        message = _client.messages.create(
+        message = anthropic_client.messages.create(
             model=CLAUDE_MODEL,
             max_tokens=150,
             system=_INTENT_CLASSIFIER_SYSTEM,
@@ -88,7 +88,7 @@ def classify_intent(user_message: str) -> dict:
         )
         raw = message.content[0].text.strip()
         logger.info(f"classify_intent raw response for {user_message!r}: {raw}")
-        clean = raw.removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+        clean = clean_json(raw)
         result = json.loads(clean)
         # Ensure all expected keys exist
         final = {**_INTENT_DEFAULT, **result}
@@ -105,7 +105,7 @@ def classify_intent(user_message: str) -> dict:
 def generate_nudge(user_context: dict) -> str:
     """Generate a personalised evening nudge for a user who hasn't checked in."""
     system = build_system_prompt(user_context)
-    name = user_context.get("full_name") or user_context.get("username") or "mate"
+    name = get_display_name(user_context)
     goals = user_context.get("goals") or "landing a SWE internship"
 
     prompt = (
@@ -115,7 +115,7 @@ def generate_nudge(user_context: dict) -> str:
     )
 
     try:
-        message = _client.messages.create(
+        message = anthropic_client.messages.create(
             model=CLAUDE_MODEL,
             max_tokens=120,
             system=system,

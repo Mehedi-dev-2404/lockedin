@@ -28,7 +28,6 @@ def create_user(telegram_id: int, username: str | None, full_name: str | None) -
                 "telegram_id": telegram_id,
                 "username": username,
                 "full_name": full_name,
-                "is_onboarded": False,
                 "onboarding_complete": False,
                 "onboarding_step": 0,
             })
@@ -55,7 +54,7 @@ def get_all_active_users() -> list[dict]:
             supabase.table("users")
             .select("*")
             .eq("is_active", True)
-            .eq("is_onboarded", True)
+            .eq("onboarding_complete", True)
             .execute()
         )
         return response.data or []

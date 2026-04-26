@@ -45,8 +45,11 @@ You have access to the user's context below. Use it to personalise every respons
 """
 
 
+from bot.koda.utils import get_display_name
+
+
 def build_system_prompt(user_context: dict) -> str:
-    name = user_context.get("name") or user_context.get("full_name") or user_context.get("username") or "mate"
+    name = get_display_name(user_context)
     year = user_context.get("year_of_study") or "unknown year"
     university = user_context.get("university") or "their university"
     target_companies = user_context.get("target_companies") or "not specified yet"

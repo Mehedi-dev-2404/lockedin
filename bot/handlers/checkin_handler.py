@@ -6,6 +6,7 @@ from telegram.ext import ContextTypes
 from db.queries.user_queries import get_user
 from db.queries.checkin_queries import get_todays_checkin
 from db.queries.streak_queries import get_streak
+from bot.koda.utils import get_display_name
 
 logger = logging.getLogger(__name__)
 
@@ -14,11 +15,11 @@ async def checkin_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     telegram_id = update.effective_user.id
     user = get_user(telegram_id)
 
-    if not user or not user.get("is_onboarded"):
+    if not user or not user.get("onboarding_complete"):
         await update.message.reply_text("Set up your profile first. Send /start.")
         return
 
-    name = user.get("full_name") or user.get("username") or "mate"
+    name = get_display_name(user)
     checkin = get_todays_checkin(telegram_id) or {}
     streak = get_streak(telegram_id) or {}
 

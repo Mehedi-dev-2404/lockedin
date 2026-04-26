@@ -1,11 +1,10 @@
 import json
 import logging
-import anthropic
-from config.settings import ANTHROPIC_API_KEY, CLAUDE_MODEL
+from config.settings import CLAUDE_MODEL
+from bot.koda.anthropic_client import anthropic_client
+from bot.koda.utils import clean_json
 
 logger = logging.getLogger(__name__)
-
-_client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
 _KODA_SYSTEM = (
     "You are Koda — a direct, dry AI accountability agent for CS students grinding for SWE internships. "
@@ -251,14 +250,14 @@ SKIPPABLE_STEPS = {7}  # github step — URL skippable, but has_github still req
 
 def _call(system: str, user_message: str, max_tokens: int = 300) -> dict | None:
     try:
-        response = _client.messages.create(
+        response = anthropic_client.messages.create(
             model=CLAUDE_MODEL,
             max_tokens=max_tokens,
             system=system,
             messages=[{"role": "user", "content": user_message}],
         )
         raw = response.content[0].text.strip()
-        clean = raw.removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+        clean = clean_json(raw)
         return json.loads(clean)
     except json.JSONDecodeError:
         logger.warning(f"onboarding_parser non-JSON response for: {user_message[:80]!r}")
@@ -270,7 +269,7 @@ def _call(system: str, user_message: str, max_tokens: int = 300) -> dict | None:
 
 def _call_text(system: str, user_message: str, max_tokens: int = 250) -> str:
     try:
-        response = _client.messages.create(
+        response = anthropic_client.messages.create(
             model=CLAUDE_MODEL,
             max_tokens=max_tokens,
             system=system,
@@ -360,7 +359,7 @@ Classify the user's message into exactly one of these categories:
 Respond with ONLY one word from the list above. Nothing else."""
 
     try:
-        response = _client.messages.create(
+        response = anthropic_client.messages.create(
             model=CLAUDE_MODEL,
             max_tokens=10,
             system=system,
@@ -628,7 +627,7 @@ def generate_summary(user_data: dict) -> str:
     )
 
     try:
-        response = _client.messages.create(
+        response = anthropic_client.messages.create(
             model=CLAUDE_MODEL,
             max_tokens=300,
             system=_KODA_SYSTEM,

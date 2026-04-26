@@ -13,6 +13,7 @@ from db.queries.streak_queries import (
 from db.queries.checkin_queries import get_todays_checkin, upsert_todays_checkin
 from db.queries.application_queries import create_application, get_application_count
 from bot.koda.claude_client import get_koda_response, classify_intent
+from bot.koda.utils import get_display_name
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +25,7 @@ async def _process_intent(telegram_id: int, intent: dict, user: dict) -> str | N
     """
     logger.info(f"_process_intent: {telegram_id} intent={intent}")
     milestone_msg = None
-    name = user.get("full_name") or user.get("username") or "mate"
+    name = get_display_name(user)
 
     if intent.get("leetcode"):
         logger.info(f"_process_intent: saving leetcode_done for {telegram_id}")

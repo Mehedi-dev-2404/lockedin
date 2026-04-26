@@ -4,6 +4,7 @@ from telegram.ext import ContextTypes
 from db.queries.user_queries import get_user, update_user
 from db.queries.streak_queries import get_streak
 from config.settings import ADMIN_TELEGRAM_ID
+from bot.koda.utils import get_display_name
 
 logger = logging.getLogger(__name__)
 
@@ -57,13 +58,13 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         )
         return
 
-    if not user.get("is_onboarded"):
+    if not user.get("onboarding_complete"):
         await update.message.reply_text(
             "You haven't finished onboarding yet. Send /start to complete it."
         )
         return
 
-    name = user.get("full_name") or user.get("username") or "Unknown"
+    name = get_display_name(user)
     year = user.get("year_of_study", "—")
     university = user.get("university", "—")
     targets_str = user.get("target_companies") or "—"
