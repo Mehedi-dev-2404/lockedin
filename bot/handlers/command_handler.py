@@ -1,8 +1,9 @@
 import logging
 from telegram import Update
 from telegram.ext import ContextTypes
-from db.queries.user_queries import get_user
+from db.queries.user_queries import get_user, update_user
 from db.queries.streak_queries import get_streak
+from config.settings import ADMIN_TELEGRAM_ID
 
 logger = logging.getLogger(__name__)
 
@@ -78,6 +79,16 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         f"Weak areas: {weak_str}\n"
         f"Goal: {goal}"
     )
+
+
+async def reset_onboarding_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    telegram_id = update.effective_user.id
+
+    if telegram_id != ADMIN_TELEGRAM_ID:
+        return
+
+    update_user(telegram_id, onboarding_complete=False, onboarding_step=0)
+    await update.message.reply_text("Onboarding reset. Send /start to go again.")
 
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
