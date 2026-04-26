@@ -83,15 +83,3 @@ def append_leetcode_progress(telegram_id: int, topics: list[str]) -> bool:
         return False
 
 
-def user_exists(telegram_id: int) -> bool:
-    try:
-        response = (
-            supabase.table("users")
-            .select("telegram_id")
-            .eq("telegram_id", telegram_id)
-            .execute()
-        )
-        return len(response.data) > 0
-    except Exception as e:
-        logger.error(f"user_exists check failed for {telegram_id}: {e}")
-        return False

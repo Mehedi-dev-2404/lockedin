@@ -3,7 +3,7 @@ import logging
 from telegram import Update
 from telegram.constants import ChatAction
 from telegram.ext import ContextTypes
-from db.queries.user_queries import get_user, user_exists, append_leetcode_progress
+from db.queries.user_queries import get_user, append_leetcode_progress
 from db.queries.streak_queries import (
     get_streak,
     update_leetcode_streak,
@@ -13,7 +13,7 @@ from db.queries.streak_queries import (
 from db.queries.checkin_queries import get_todays_checkin, upsert_todays_checkin
 from db.queries.application_queries import create_application, get_application_count
 from bot.koda.claude_client import get_koda_response, classify_intent
-from bot.koda.utils import get_display_name
+from bot.koda.utils import get_display_name, build_user_context
 
 logger = logging.getLogger(__name__)
 
@@ -78,16 +78,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     telegram_id = update.effective_user.id
     user_message = update.message.text.strip()
 
-    if not user_exists(telegram_id):
-        await update.message.reply_text(
-            "You're not set up yet. Send /start to get started."
-        )
-        return
-
     user = get_user(telegram_id)
     if not user:
         await update.message.reply_text(
-            "Something went wrong loading your profile. Try again."
+            "You're not set up yet. Send /start to get started."
         )
         return
 
@@ -98,27 +92,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         return
 
     streak = get_streak(telegram_id) or {}
-    user_context = {
-        "name": user.get("name"),
-        "full_name": user.get("full_name"),
-        "username": user.get("username"),
-        "year_of_study": user.get("year_of_study"),
-        "university": user.get("university"),
-        "target_companies": user.get("target_companies"),
-        "weak_areas": user.get("weak_areas"),
-        "target_type": user.get("target_type"),
-        "target_industry": user.get("target_industry"),
-        "experience_level": user.get("experience_level"),
-        "leetcode_status": user.get("leetcode_status"),
-        "accountability_style": user.get("accountability_style"),
-        "is_international": user.get("is_international"),
-        "github_url": user.get("github_url"),
-        "leetcode_streak": streak.get("leetcode_streak", 0),
-        "applications_streak": streak.get("applications_streak", 0),
-        "project_streak": streak.get("project_streak", 0),
-        "longest_leetcode": streak.get("longest_leetcode", 0),
-        "leetcode_progress": user.get("leetcode_progress") or [],
-    }
+    user_context = build_user_context(user, streak)
 
     # Run Koda response and intent classification in parallel
     koda_response, intent = await asyncio.gather(

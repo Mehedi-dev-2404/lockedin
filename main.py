@@ -5,7 +5,7 @@ from bot.handlers.onboarding_handler import build_onboarding_handler
 from bot.handlers.command_handler import streak_command, profile_command, help_command, reset_onboarding_command
 from bot.handlers.checkin_handler import checkin_command
 from bot.handlers.message_handler import handle_message
-from bot.scheduler.daily_checkin import schedule_daily_nudge
+from bot.scheduler.daily_checkin import schedule_daily_nudges
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -27,7 +27,7 @@ def main():
     app.add_handler(CommandHandler("resetonboarding", reset_onboarding_command))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
-    schedule_daily_nudge(app)
+    schedule_daily_nudges(app)
 
     logger.info("Koda is live.")
     app.run_polling()

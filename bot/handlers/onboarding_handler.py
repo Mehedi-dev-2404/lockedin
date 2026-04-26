@@ -9,7 +9,7 @@ from telegram.ext import (
     MessageHandler,
     filters,
 )
-from db.queries.user_queries import get_user, create_user, update_user, user_exists
+from db.queries.user_queries import get_user, create_user, update_user
 from db.queries.streak_queries import get_streak, create_streak
 from db.queries.message_queries import save_message, get_recent_messages
 from bot.koda import onboarding_parser
@@ -275,7 +275,7 @@ async def _completion_sequence(
 
     # Save Koda's completion messages to history
     completion_text = " | ".join(project_messages)
-    save_message(telegram_id, "assistant", completion_text)
+    save_message(telegram_id, "assistant", completion_text, "onboarding")
 
 
 # ---------------------------------------------------------------------------
@@ -286,7 +286,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     telegram_id = update.effective_user.id
     tg_user = update.effective_user
 
-    if not user_exists(telegram_id):
+    user = get_user(telegram_id)
+    if user is None:
         result = create_user(
             telegram_id=telegram_id,
             username=tg_user.username,
@@ -300,13 +301,12 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
             return ConversationHandler.END
         if not get_streak(telegram_id):
             create_streak(telegram_id)
-
-    user = get_user(telegram_id)
-    if not user:
-        await update.message.reply_text(
-            "something went wrong loading your profile. please try /start again."
-        )
-        return ConversationHandler.END
+        user = get_user(telegram_id)
+        if not user:
+            await update.message.reply_text(
+                "something went wrong loading your profile. please try /start again."
+            )
+            return ConversationHandler.END
 
     # Already onboarded — personalised greeting
     if user.get("onboarding_complete"):
@@ -369,7 +369,7 @@ async def handle_onboarding_response(
     history = await asyncio.to_thread(get_recent_messages, telegram_id, 15)
 
     # Save the user's message to history
-    await asyncio.to_thread(save_message, telegram_id, "user", user_message)
+    await asyncio.to_thread(save_message, telegram_id, "user", user_message, "onboarding")
 
     # Duplicate message detection
     last_user_msg = next(
@@ -433,7 +433,7 @@ async def handle_onboarding_response(
             onboarding_parser.generate_response, "clarification", current_step, user_message, history, user
         )
         koda_text = " | ".join(response)
-        await asyncio.to_thread(save_message, telegram_id, "assistant", koda_text)
+        await asyncio.to_thread(save_message, telegram_id, "assistant", koda_text, "onboarding")
         await _send(update, context, response)
         return ONBOARDING
 
@@ -447,7 +447,7 @@ async def handle_onboarding_response(
             onboarding_parser.generate_response, "confused", current_step, user_message, history, user
         )
         koda_text = " | ".join(response)
-        await asyncio.to_thread(save_message, telegram_id, "assistant", koda_text)
+        await asyncio.to_thread(save_message, telegram_id, "assistant", koda_text, "onboarding")
         await _send(update, context, response)
         return ONBOARDING
 
@@ -520,7 +520,7 @@ async def handle_onboarding_response(
             onboarding_parser.generate_response, "confused", current_step, user_message, history, user
         )
         koda_text = " | ".join(response)
-        await asyncio.to_thread(save_message, telegram_id, "assistant", koda_text)
+        await asyncio.to_thread(save_message, telegram_id, "assistant", koda_text, "onboarding")
         await _send(update, context, response)
         return ONBOARDING
 
@@ -566,7 +566,7 @@ async def handle_onboarding_response(
 
     # Save Koda's ack to history
     if ack:
-        await asyncio.to_thread(save_message, telegram_id, "assistant", " ".join(ack))
+        await asyncio.to_thread(save_message, telegram_id, "assistant", " ".join(ack), "onboarding")
 
     await _send(update, context, STEP_QUESTIONS[next_step])
     return ONBOARDING
