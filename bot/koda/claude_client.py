@@ -15,21 +15,32 @@ _INTENT_CLASSIFIER_SYSTEM = """You are an intent classifier. Given a user messag
 {
   "leetcode": true/false,
   "leetcode_count": number or null,
+  "leetcode_topic": true/false,
+  "leetcode_topics": array of strings or null,
   "applied": true/false,
   "company": string or null,
   "role": string or null,
   "project_work": true/false
 }
 
+For leetcode_topic: set true when the user says they finished, completed, or are done with a specific topic, section, or problem set — e.g. "done with arrays and hashing", "finished two pointers", "completed sliding window", "done with blind 75 trees section".
+For leetcode_topics: list the exact topic names mentioned, normalised to lowercase (e.g. ["arrays and hashing", "two pointers"]). Null if leetcode_topic is false.
+For leetcode: set true for any general leetcode activity (solving problems, grinding, etc). A topic completion also counts as leetcode activity.
+
 Examples:
-"did 3 leetcode problems" -> {"leetcode": true, "leetcode_count": 3, "applied": false, "company": null, "role": null, "project_work": false}
-"applied to Google SWE intern" -> {"leetcode": false, "leetcode_count": null, "applied": true, "company": "Google", "role": "SWE intern", "project_work": false}
-"pushed some code today" -> {"leetcode": false, "leetcode_count": null, "applied": false, "company": null, "role": null, "project_work": true}
-"what should i focus on" -> {"leetcode": false, "leetcode_count": null, "applied": false, "company": null, "role": null, "project_work": false}"""
+"did 3 leetcode problems" -> {"leetcode": true, "leetcode_count": 3, "leetcode_topic": false, "leetcode_topics": null, "applied": false, "company": null, "role": null, "project_work": false}
+"done with arrays and hashing" -> {"leetcode": true, "leetcode_count": null, "leetcode_topic": true, "leetcode_topics": ["arrays and hashing"], "applied": false, "company": null, "role": null, "project_work": false}
+"finished two pointers and sliding window" -> {"leetcode": true, "leetcode_count": null, "leetcode_topic": true, "leetcode_topics": ["two pointers", "sliding window"], "applied": false, "company": null, "role": null, "project_work": false}
+"completed blind 75 trees section" -> {"leetcode": true, "leetcode_count": null, "leetcode_topic": true, "leetcode_topics": ["trees"], "applied": false, "company": null, "role": null, "project_work": false}
+"applied to Google SWE intern" -> {"leetcode": false, "leetcode_count": null, "leetcode_topic": false, "leetcode_topics": null, "applied": true, "company": "Google", "role": "SWE intern", "project_work": false}
+"pushed some code today" -> {"leetcode": false, "leetcode_count": null, "leetcode_topic": false, "leetcode_topics": null, "applied": false, "company": null, "role": null, "project_work": true}
+"what should i focus on" -> {"leetcode": false, "leetcode_count": null, "leetcode_topic": false, "leetcode_topics": null, "applied": false, "company": null, "role": null, "project_work": false}"""
 
 _INTENT_DEFAULT = {
     "leetcode": False,
     "leetcode_count": None,
+    "leetcode_topic": False,
+    "leetcode_topics": None,
     "applied": False,
     "company": None,
     "role": None,
@@ -82,7 +93,7 @@ def classify_intent(user_message: str) -> dict:
     try:
         message = anthropic_client.messages.create(
             model=CLAUDE_MODEL,
-            max_tokens=150,
+            max_tokens=200,
             system=_INTENT_CLASSIFIER_SYSTEM,
             messages=[{"role": "user", "content": user_message}],
         )

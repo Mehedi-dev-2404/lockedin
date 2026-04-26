@@ -62,6 +62,8 @@ def build_system_prompt(user_context: dict) -> str:
     is_international = user_context.get("is_international")
     github_url = user_context.get("github_url") or "none"
 
+    leetcode_progress = user_context.get("leetcode_progress") or []
+
     leetcode_streak = user_context.get("leetcode_streak", 0)
     applications_streak = user_context.get("applications_streak", 0)
     project_streak = user_context.get("project_streak", 0)
@@ -91,10 +93,12 @@ USER CONTEXT:
 - Weak areas: {weak_str}
 - Accountability style: {accountability_note}
 - LeetCode streak: {leetcode_streak} day(s) (longest: {longest_leetcode})
+- LeetCode topics completed: {", ".join(leetcode_progress) if leetcode_progress else "none recorded yet"}
 - Applications streak: {applications_streak} day(s)
 - Project streak: {project_streak} day(s)
 
 Always address them as {name}. Reference their target companies, weak areas, and industry naturally when relevant. Don't force it every message but bring it up when it adds value.
+When suggesting LeetCode topics, never suggest topics already in their completed list. Build on what they've done.
 """
 
     return BASE_SYSTEM_PROMPT + context_block

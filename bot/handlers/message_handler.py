@@ -3,7 +3,7 @@ import logging
 from telegram import Update
 from telegram.constants import ChatAction
 from telegram.ext import ContextTypes
-from db.queries.user_queries import get_user, user_exists
+from db.queries.user_queries import get_user, user_exists, append_leetcode_progress
 from db.queries.streak_queries import (
     get_streak,
     update_leetcode_streak,
@@ -35,6 +35,12 @@ async def _process_intent(telegram_id: int, intent: dict, user: dict) -> str | N
         logger.info(f"_process_intent: update_leetcode_streak returned streak={new_streak} milestone={is_milestone}")
         if is_milestone:
             milestone_msg = f"{new_streak}-day leetcode streak \U0001f525 that's actually hard to do. keep it up {name}."
+
+    if intent.get("leetcode_topic"):
+        topics = intent.get("leetcode_topics") or []
+        if topics:
+            logger.info(f"_process_intent: saving leetcode progress topics={topics} for {telegram_id}")
+            await asyncio.to_thread(append_leetcode_progress, telegram_id, topics)
 
     if intent.get("applied"):
         company = intent.get("company") or "Unknown"
@@ -111,6 +117,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         "applications_streak": streak.get("applications_streak", 0),
         "project_streak": streak.get("project_streak", 0),
         "longest_leetcode": streak.get("longest_leetcode", 0),
+        "leetcode_progress": user.get("leetcode_progress") or [],
     }
 
     # Run Koda response and intent classification in parallel

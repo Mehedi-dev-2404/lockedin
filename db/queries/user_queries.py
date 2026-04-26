@@ -63,6 +63,26 @@ def get_all_active_users() -> list[dict]:
         return []
 
 
+def append_leetcode_progress(telegram_id: int, topics: list[str]) -> bool:
+    """Merge new topics into the user's leetcode_progress JSON array, deduplicating."""
+    try:
+        response = (
+            supabase.table("users")
+            .select("leetcode_progress")
+            .eq("telegram_id", telegram_id)
+            .maybe_single()
+            .execute()
+        )
+        current = response.data.get("leetcode_progress") or [] if response.data else []
+        existing = {t.lower() for t in current}
+        merged = current + [t for t in topics if t.lower() not in existing]
+        supabase.table("users").update({"leetcode_progress": merged}).eq("telegram_id", telegram_id).execute()
+        return True
+    except Exception as e:
+        logger.error(f"append_leetcode_progress failed for {telegram_id}: {e}")
+        return False
+
+
 def user_exists(telegram_id: int) -> bool:
     try:
         response = (
