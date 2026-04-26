@@ -590,4 +590,5 @@ def build_onboarding_handler() -> ConversationHandler:
             ONBOARDING: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_onboarding_response)],
         },
         fallbacks=[CommandHandler("cancel", cancel)],
+        allow_reentry=True,
     )
