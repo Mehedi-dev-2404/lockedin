@@ -29,6 +29,8 @@ def create_user(telegram_id: int, username: str | None, full_name: str | None) -
                 "username": username,
                 "full_name": full_name,
                 "is_onboarded": False,
+                "onboarding_complete": False,
+                "onboarding_step": 0,
             })
             .execute()
         )

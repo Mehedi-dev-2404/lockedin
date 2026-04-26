@@ -46,35 +46,52 @@ You have access to the user's context below. Use it to personalise every respons
 
 
 def build_system_prompt(user_context: dict) -> str:
-    name = user_context.get("full_name") or user_context.get("username") or "there"
-    year = user_context.get("year_of_study", "unknown year")
-    university = user_context.get("university", "their university")
+    name = user_context.get("name") or user_context.get("full_name") or user_context.get("username") or "mate"
+    year = user_context.get("year_of_study") or "unknown year"
+    university = user_context.get("university") or "their university"
     target_companies = user_context.get("target_companies") or "not specified yet"
     weak_areas = user_context.get("weak_areas") or "not specified yet"
-    main_goal = user_context.get("goals", "landing a SWE internship")
-    current_streak = user_context.get("current_streak", 0)
-    longest_streak = user_context.get("longest_streak", 0)
+    target_type = user_context.get("target_type") or "internship"
+    target_industry = user_context.get("target_industry") or "not specified"
+    experience_level = user_context.get("experience_level") or "not specified"
+    leetcode_status = user_context.get("leetcode_status") or "not specified"
+    accountability_style = user_context.get("accountability_style") or "default"
+    is_international = user_context.get("is_international")
+    github_url = user_context.get("github_url") or "none"
 
-    companies_str = target_companies
-    weak_str = weak_areas
-
-    leetcode_streak = user_context.get("leetcode_streak", current_streak)
+    leetcode_streak = user_context.get("leetcode_streak", 0)
     applications_streak = user_context.get("applications_streak", 0)
     project_streak = user_context.get("project_streak", 0)
-    longest_leetcode = user_context.get("longest_leetcode", longest_streak)
+    longest_leetcode = user_context.get("longest_leetcode", 0)
+
+    companies_str = ", ".join(target_companies) if isinstance(target_companies, list) else target_companies
+    weak_str = ", ".join(weak_areas) if isinstance(weak_areas, list) else weak_areas
+
+    intl_note = " (international student — factor in visa/sponsorship where relevant)" if is_international else ""
+
+    accountability_note = {
+        "no_mercy": "they asked for no mercy — call them out hard every time, zero softening",
+        "light_touch": "they want light touch — push them but keep it gentle",
+        "default": "default accountability — firm but human about it",
+    }.get(accountability_style, "default accountability — firm but human about it")
 
     context_block = f"""
 USER CONTEXT:
 - Name: {name}
-- Year of study: {year} at {university}
+- Year of study: {year} at {university}{intl_note}
+- Going for: {target_type}
 - Target companies: {companies_str}
-- Weak areas they want to improve: {weak_str}
-- Main goal: {main_goal}
+- Target industry: {target_industry}
+- Experience level: {experience_level}
+- LeetCode status: {leetcode_status}
+- GitHub: {github_url}
+- Weak areas: {weak_str}
+- Accountability style: {accountability_note}
 - LeetCode streak: {leetcode_streak} day(s) (longest: {longest_leetcode})
 - Applications streak: {applications_streak} day(s)
 - Project streak: {project_streak} day(s)
 
-Always address them as {name}. Reference their target companies and weak areas naturally when relevant — don't force it every message, but bring it up when it adds value.
+Always address them as {name}. Reference their target companies, weak areas, and industry naturally when relevant. Don't force it every message but bring it up when it adds value.
 """
 
     return BASE_SYSTEM_PROMPT + context_block
