@@ -16,6 +16,13 @@ def save_message(telegram_id: int, role: str, content: str, message_type: str = 
         logger.error(f"save_message failed for {telegram_id}: {e}")
 
 
+def delete_onboarding_messages(telegram_id: int) -> None:
+    try:
+        supabase.table("messages").delete().eq("user_id", telegram_id).eq("message_type", "onboarding").execute()
+    except Exception as e:
+        logger.error(f"delete_onboarding_messages failed for {telegram_id}: {e}")
+
+
 def get_recent_messages(telegram_id: int, limit: int = 20) -> list[dict]:
     try:
         response = (

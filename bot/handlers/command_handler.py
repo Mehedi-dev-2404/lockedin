@@ -3,6 +3,7 @@ from telegram import Update
 from telegram.ext import ContextTypes
 from db.queries.user_queries import get_user, update_user
 from db.queries.streak_queries import get_streak
+from db.queries.message_queries import delete_onboarding_messages
 from config.settings import ADMIN_TELEGRAM_ID
 from bot.koda.utils import get_display_name
 
@@ -88,7 +89,27 @@ async def reset_onboarding_command(update: Update, context: ContextTypes.DEFAULT
     if telegram_id != ADMIN_TELEGRAM_ID:
         return
 
-    update_user(telegram_id, onboarding_complete=False, onboarding_step=0)
+    update_user(
+        telegram_id,
+        onboarding_complete=False,
+        onboarding_step=0,
+        name=None,
+        university=None,
+        year_of_study=None,
+        target_type=None,
+        target_companies=None,
+        target_industry=None,
+        is_international=None,
+        experience_level=None,
+        has_github=None,
+        github_url=None,
+        leetcode_status=None,
+        weak_areas=None,
+        accountability_style=None,
+        nudge_time=None,
+        leetcode_progress=None,
+    )
+    delete_onboarding_messages(telegram_id)
     await update.message.reply_text("Onboarding reset. Send /start to go again.")
 
 
