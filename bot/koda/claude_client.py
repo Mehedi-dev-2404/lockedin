@@ -4,6 +4,7 @@ import anthropic
 from config.settings import ANTHROPIC_API_KEY, CLAUDE_MODEL, CLAUDE_MAX_TOKENS
 from bot.koda.personality import build_system_prompt
 from db.queries.message_queries import save_message, get_recent_messages
+from db.queries.user_queries import get_user, update_user
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +37,14 @@ _INTENT_DEFAULT = {
 }
 
 
-def get_koda_response(telegram_id: int, user_message: str, user_context: dict) -> str:
+def get_koda_response(telegram_id: int, user_message: str, user_context: dict) -> str | None:
+    user = get_user(telegram_id)
+    if user:
+        is_premium = user.get("is_premium", False)
+        total_message_count = user.get("total_message_count", 0) or 0
+        if not is_premium and total_message_count >= 80:
+            return None
+
     system_prompt = build_system_prompt(user_context)
     history = get_recent_messages(telegram_id, limit=20)
     messages = history + [{"role": "user", "content": user_message}]
@@ -51,6 +59,8 @@ def get_koda_response(telegram_id: int, user_message: str, user_context: dict) -
         response_text = message.content[0].text
         save_message(telegram_id, "user", user_message)
         save_message(telegram_id, "assistant", response_text)
+        if user:
+            update_user(telegram_id, total_message_count=(user.get("total_message_count") or 0) + 1)
         return response_text
     except anthropic.APIConnectionError as e:
         logger.error(f"Anthropic connection error for user {telegram_id}: {e}")

@@ -1,5 +1,7 @@
+import asyncio
 import logging
 from telegram import Update
+from telegram.constants import ChatAction
 from telegram.ext import (
     ContextTypes,
     ConversationHandler,
@@ -48,11 +50,24 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         if not get_streak(telegram_id):
             create_streak(telegram_id)
 
-    await update.message.reply_text(
-        "Hey, I'm Koda — your accountability agent for the internship grind.\n\n"
-        "I'm going to ask you a few quick questions to set things up. Takes about a minute.\n\n"
-        "What's your name?"
+    welcome_messages = [
+        "yo. i'm Koda — your accountability agent for the internship grind.",
+        "i'm going to ask you a few quick questions to set things up.",
+        "takes about a minute. let's go.",
+    ]
+    sleeps = [0.8, 0.8, 1.0]
+    for msg, delay in zip(welcome_messages, sleeps):
+        await context.bot.send_chat_action(
+            chat_id=update.effective_chat.id, action=ChatAction.TYPING
+        )
+        await asyncio.sleep(delay)
+        await update.message.reply_text(msg)
+
+    await context.bot.send_chat_action(
+        chat_id=update.effective_chat.id, action=ChatAction.TYPING
     )
+    await asyncio.sleep(0.8)
+    await update.message.reply_text("what's your name?")
     return NAME
 
 

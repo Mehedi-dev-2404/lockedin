@@ -113,6 +113,21 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         asyncio.to_thread(classify_intent, user_message),
     )
 
+    # Free message limit reached
+    if koda_response is None:
+        upgrade_messages = [
+            "you've used up your free messages.",
+            "to keep grinding with Koda, upgrade at lockedin.vercel.app",
+            "it's £9/month. less than a Pret coffee per week.",
+        ]
+        for msg in upgrade_messages:
+            await context.bot.send_chat_action(
+                chat_id=update.effective_chat.id, action=ChatAction.TYPING
+            )
+            await asyncio.sleep(0.8)
+            await update.message.reply_text(msg)
+        return
+
     # Send Koda's response
     chunks = [line for line in koda_response.split("\n") if line.strip()]
     for chunk in chunks:
