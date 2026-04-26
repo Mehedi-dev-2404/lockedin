@@ -32,6 +32,99 @@ def _call(system: str, user_message: str, max_tokens: int = 200) -> dict | None:
         return None
 
 
+def _call_text(system: str, user_message: str, max_tokens: int = 200) -> str:
+    try:
+        response = _client.messages.create(
+            model=CLAUDE_MODEL,
+            max_tokens=max_tokens,
+            system=system,
+            messages=[{"role": "user", "content": user_message}],
+        )
+        return response.content[0].text.strip()
+    except Exception as e:
+        logger.error(f"onboarding_parser._call_text failed: {e}")
+        return ""
+
+
+def classify_intent(user_message: str, step_context: str) -> str:
+    """Classify user message as: answer | clarification_request | out_of_scope | confused."""
+    system = f"""You are classifying a user's message during a bot setup conversation.
+Koda just asked the user about: {step_context}
+
+Classify their reply into exactly one category:
+- answer: they are attempting to answer the question, even if vague, indirect, or using different words
+- clarification_request: they are asking what something means, or asking for more info before answering
+- out_of_scope: they are saying or asking something completely unrelated to the question
+- confused: they seem lost, frustrated, unsure what's being asked, or expressing that they don't know what to say
+
+Respond with ONLY one of those four words. Nothing else.
+
+Examples (for "which university and year are you in"):
+"second year UCL" -> answer
+"UCL" -> answer
+"I'm at Manchester in my third year" -> answer
+"what do you mean by year?" -> clarification_request
+"does it matter which course I'm doing?" -> clarification_request
+"what's the best programming language?" -> out_of_scope
+"I don't know what to put here" -> confused
+"idk" -> confused
+"lol no idea" -> confused"""
+
+    try:
+        response = _client.messages.create(
+            model=CLAUDE_MODEL,
+            max_tokens=10,
+            system=system,
+            messages=[{"role": "user", "content": user_message}],
+        )
+        result = response.content[0].text.strip().lower()
+        if result in ("answer", "clarification_request", "out_of_scope", "confused"):
+            return result
+        logger.warning(f"classify_intent got unexpected value: {result!r}")
+        return "answer"
+    except Exception as e:
+        logger.error(f"classify_intent failed: {e}")
+        return "answer"
+
+
+def generate_clarification_response(user_message: str, step_context: str) -> str:
+    """Generate a Koda response to a clarification request — explains the question then re-asks with fresh phrasing."""
+    prompt = (
+        f'The user asked: "{user_message}"\n\n'
+        f"Koda was trying to find out: {step_context}\n\n"
+        f"Write Koda's response. It should: explain what you're asking in plain English "
+        f"with one concrete example, then re-ask the question naturally using different phrasing from before. "
+        f"2-3 short messages separated by newlines. Lowercase. Dry, direct tone. No fluff. "
+        f"Don't start with 'so' or 'basically'."
+    )
+    return _call_text(_KODA_SYSTEM, prompt, max_tokens=220)
+
+
+def generate_out_of_scope_response(user_message: str, step_context: str) -> str:
+    """Generate a Koda response when the user goes off-topic — brief acknowledgement, redirect, re-ask."""
+    prompt = (
+        f'The user said: "{user_message}"\n\n'
+        f"This is unrelated to what Koda just asked. Koda is trying to find out: {step_context}\n\n"
+        f"Write Koda's response. Acknowledge their message in one short line (don't dismiss it), "
+        f"say you'll get to it once setup is done, then re-ask the question with slightly different phrasing. "
+        f"2-3 lines max. Lowercase. Keep the redirect light — not dismissive."
+    )
+    return _call_text(_KODA_SYSTEM, prompt, max_tokens=180)
+
+
+def generate_confused_response(user_message: str, step_context: str) -> str:
+    """Generate a Koda response when the user seems confused or lost — reset, explain, re-ask simply."""
+    prompt = (
+        f'The user said: "{user_message}" — they seem confused or unsure.\n\n'
+        f"Koda was trying to find out: {step_context}\n\n"
+        f"Write Koda's response. Acknowledge that it's a fair question to be unsure about (1 line), "
+        f"explain simply what Koda is trying to understand and why it matters for their internship prep (1-2 lines), "
+        f"then re-ask more simply with a concrete example. "
+        f"Lowercase. Direct but warm. Not condescending."
+    )
+    return _call_text(_KODA_SYSTEM, prompt, max_tokens=220)
+
+
 def parse_name(raw: str) -> dict | None:
     system = """Extract the person's name from their message. Respond ONLY with valid JSON, nothing else.
 {"name": "string or null"}
@@ -63,15 +156,23 @@ If you cannot extract either field, return null for that field."""
 
 
 def parse_target_type_deadline(raw: str) -> dict | None:
-    system = """Extract target_type and app_deadline from the message. Respond ONLY with valid JSON, nothing else.
+    system = """Extract target_type and app_deadline from the message. Interpret intent flexibly — don't require exact keywords.
+Respond ONLY with valid JSON, nothing else.
 target_type must be one of: placement, internship, grad
-app_deadline is a free-text string describing when applications open (e.g. "September 2025", "already open", "not sure").
+app_deadline is a free-text string for when applications open (e.g. "September 2025", "already open", "not sure").
 {"target_type": "placement|internship|grad|null", "app_deadline": "string or null"}
 Examples:
 "placement year, apps open in September" -> {"target_type": "placement", "app_deadline": "September"}
+"I want to do a year in industry" -> {"target_type": "placement", "app_deadline": "not sure"}
+"sandwich year" -> {"target_type": "placement", "app_deadline": "not sure"}
+"industrial placement" -> {"target_type": "placement", "app_deadline": "not sure"}
 "summer internship, they open around Jan" -> {"target_type": "internship", "app_deadline": "January"}
+"10 week summer program" -> {"target_type": "internship", "app_deadline": "not sure"}
 "grad job, already applying" -> {"target_type": "grad", "app_deadline": "already open"}
-"internship not sure when" -> {"target_type": "internship", "app_deadline": "not sure"}
+"full time after graduation" -> {"target_type": "grad", "app_deadline": "not sure"}
+"internship, I apply in autumn" -> {"target_type": "internship", "app_deadline": "October/November"}
+"apps open in the fall" -> {"target_type": null, "app_deadline": "September/October"}
+"not sure when, probably next year" -> {"target_type": null, "app_deadline": "next year"}
 If you cannot determine target_type, return {"target_type": null, "app_deadline": null}."""
     result = _call(system, raw)
     if result and result.get("target_type"):
@@ -132,19 +233,27 @@ Examples:
 
 def parse_experience_level(raw: str) -> dict | None:
     system = """Map the person's technical experience to exactly one of: beginner, basics, shipped_locally, live_in_prod.
+Interpret intent flexibly — infer from what they describe, don't require exact phrases.
 Respond ONLY with valid JSON, nothing else.
 {"experience_level": "beginner|basics|shipped_locally|live_in_prod"}
 Definitions:
 - beginner: complete beginner, just started or never coded seriously
-- basics: knows fundamentals but hasn't built and shipped anything real
-- shipped_locally: built projects that run locally, nothing deployed
+- basics: knows fundamentals but hasn't built or shipped anything real yet
+- shipped_locally: built projects that run locally on their machine, nothing deployed publicly
 - live_in_prod: has something live on the internet with real users
 Examples:
 "complete beginner, just started learning Python" -> {"experience_level": "beginner"}
+"only done tutorials, no real projects" -> {"experience_level": "beginner"}
 "know Python and some web stuff but never really built anything" -> {"experience_level": "basics"}
+"I can code but haven't made anything real" -> {"experience_level": "basics"}
+"done the fundamentals, working on my first project" -> {"experience_level": "basics"}
 "built a few projects locally, none deployed" -> {"experience_level": "shipped_locally"}
+"got some stuff on my machine but never put anything online" -> {"experience_level": "shipped_locally"}
+"my projects only run on my laptop" -> {"experience_level": "shipped_locally"}
 "I have a SaaS with 50 users" -> {"experience_level": "live_in_prod"}
-"got a portfolio site live and a small app" -> {"experience_level": "live_in_prod"}"""
+"got a portfolio site live and a small app deployed" -> {"experience_level": "live_in_prod"}
+"I shipped a Discord bot that 200 people use" -> {"experience_level": "live_in_prod"}
+"something on Vercel/Heroku/Railway with real users" -> {"experience_level": "live_in_prod"}"""
     result = _call(system, raw)
     if result and result.get("experience_level"):
         return result

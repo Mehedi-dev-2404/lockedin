@@ -79,26 +79,20 @@ STEP_PARSERS = {
     11: onboarding_parser.parse_nudge_time,
 }
 
-# Rephrased questions for when parsing fails — more conversational, different angle.
-STEP_REPHRASES = {
-    0: ["just need something to call you — what's your name?"],
-    1: ["what uni are you at? and what year? (e.g. UCL, second year)"],
-    2: [
-        "what type of role are you going for — placement, internship, or grad job?",
-        "and roughly when do those apps open?",
-    ],
-    3: ["simple yes or no — are you an international student?"],
-    4: ["who are the companies you're actually trying to get into? even vague is fine — faang, any fintech, startups etc."],
-    5: ["what industry are you most interested in? finance, big tech, startup, or consultancy?"],
-    6: [
-        "where are you technically?",
-        "complete beginner, know the basics, shipped stuff locally, or got something live?",
-    ],
-    7: ["yes or no — do you have a github? if yes, drop the url."],
-    8: ["leetcode — grinding daily, just started, or haven't touched it?"],
-    9: ["what are you weakest at right now? dsa, system design, behavioural interviews, building projects — list them."],
-    10: ["how should i push you? default, no mercy, or light touch?"],
-    11: ["what time should i nudge you every day? something like 9am or 21:00."],
+# Plain-English description of what each step is asking — passed to Claude for intent-aware responses.
+STEP_CONTEXT = {
+    0: "what name they want Koda to call them",
+    1: "which university they attend and what year of study they're in",
+    2: "whether they're targeting a placement year, summer internship, or graduate job — and when applications typically open for them",
+    3: "whether they are an international student, which affects visa sponsorship advice and application timelines",
+    4: "which specific companies or types of companies they're actually trying to get into",
+    5: "which industry they want their technical projects to reflect — finance, big tech, startup, or consultancy",
+    6: "their current technical experience level — whether they're a complete beginner, know the basics, have shipped projects locally, or have something live in production with real users",
+    7: "whether they have a GitHub account and if so what the URL is",
+    8: "where they're at with LeetCode — whether they're grinding it regularly, have just started, or haven't touched it yet",
+    9: "which areas of their technical or job-search preparation they know are currently weak",
+    10: "how hard they want Koda to push them — default, no mercy, or light touch",
+    11: "what time each day they want Koda to send a check-in nudge if they've gone quiet",
 }
 
 _PROJECT_GUIDANCE = {
@@ -309,6 +303,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     return ONBOARDING
 
 
+def _lines(text: str) -> list[str]:
+    """Split Claude-generated text into sendable lines, filtering blanks."""
+    return [l.strip() for l in text.split("\n") if l.strip()]
+
+
 async def handle_onboarding_response(
     update: Update, context: ContextTypes.DEFAULT_TYPE
 ) -> int:
@@ -317,13 +316,40 @@ async def handle_onboarding_response(
 
     user = get_user(telegram_id)
     if not user:
-        await update.message.reply_text(
-            "something went wrong. send /start to try again."
-        )
+        await update.message.reply_text("something went wrong. send /start to try again.")
         return ConversationHandler.END
 
     current_step = user.get("onboarding_step") or 0
+    step_context = STEP_CONTEXT.get(current_step, "what you're asking")
 
+    # Classify intent before attempting to parse
+    intent = await asyncio.to_thread(
+        onboarding_parser.classify_intent, user_message, step_context
+    )
+    logger.info(f"onboarding step={current_step} intent={intent!r} user={telegram_id}")
+
+    if intent == "clarification_request":
+        response = await asyncio.to_thread(
+            onboarding_parser.generate_clarification_response, user_message, step_context
+        )
+        await _send(update, context, _lines(response))
+        return ONBOARDING
+
+    if intent == "out_of_scope":
+        response = await asyncio.to_thread(
+            onboarding_parser.generate_out_of_scope_response, user_message, step_context
+        )
+        await _send(update, context, _lines(response))
+        return ONBOARDING
+
+    if intent == "confused":
+        response = await asyncio.to_thread(
+            onboarding_parser.generate_confused_response, user_message, step_context
+        )
+        await _send(update, context, _lines(response))
+        return ONBOARDING
+
+    # intent == "answer" — attempt structured parse
     parser = STEP_PARSERS.get(current_step)
     if parser is None:
         logger.error(f"No parser for onboarding step {current_step} — user {telegram_id}")
@@ -332,12 +358,15 @@ async def handle_onboarding_response(
     parsed = await asyncio.to_thread(parser, user_message)
 
     if parsed is None:
-        # Parsing failed — rephrase the question
-        rephrase = STEP_REPHRASES.get(current_step, ["sorry, didn't catch that — try again?"])
-        await _send(update, context, ["nah i didn't quite get that."] + rephrase, delay=0.7)
+        # Classified as an answer but structured parse still failed —
+        # treat as confused so Koda re-explains without a generic error message
+        response = await asyncio.to_thread(
+            onboarding_parser.generate_confused_response, user_message, step_context
+        )
+        await _send(update, context, _lines(response))
         return ONBOARDING
 
-    # Build DB update — skip None values so we don't overwrite valid data
+    # Save parsed fields — skip None values so we don't overwrite prior valid data
     db_updates = {k: v for k, v in parsed.items() if v is not None}
     next_step = current_step + 1
     db_updates["onboarding_step"] = next_step
@@ -348,7 +377,6 @@ async def handle_onboarding_response(
     update_user(telegram_id, **db_updates)
 
     if next_step >= 12:
-        # Brief ack for last step if applicable
         ack = _get_ack(current_step, parsed, user)
         if ack:
             await _send(update, context, ack, delay=0.6)
@@ -356,7 +384,6 @@ async def handle_onboarding_response(
         await _complete_onboarding(update, context, telegram_id)
         return ConversationHandler.END
 
-    # Acknowledge the response, then ask the next question
     ack = _get_ack(current_step, parsed, user)
     if ack:
         await _send(update, context, ack, delay=0.6)
