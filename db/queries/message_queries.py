@@ -23,13 +23,13 @@ def delete_onboarding_messages(telegram_id: int) -> None:
         logger.error(f"delete_onboarding_messages failed for {telegram_id}: {e}")
 
 
-def get_recent_messages(telegram_id: int, limit: int = 20) -> list[dict]:
+def get_recent_messages(telegram_id: int, limit: int = 20, message_type: str = "conversation") -> list[dict]:
     try:
         response = (
             supabase.table("messages")
             .select("role, content")
             .eq("user_id", telegram_id)
-            .eq("message_type", "conversation")
+            .eq("message_type", message_type)
             .order("created_at", desc=True)
             .limit(limit)
             .execute()

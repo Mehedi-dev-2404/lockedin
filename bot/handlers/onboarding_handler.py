@@ -365,8 +365,8 @@ async def handle_onboarding_response(
 
     current_step = user.get("onboarding_step") or 0
 
-    # Fetch conversation history for context
-    history = await asyncio.to_thread(get_recent_messages, telegram_id, 15)
+    # Fetch onboarding history before saving current message — dupe check must see prior messages only
+    history = await asyncio.to_thread(get_recent_messages, telegram_id, 15, "onboarding")
 
     # Save the user's message to history
     await asyncio.to_thread(save_message, telegram_id, "user", user_message, "onboarding")
