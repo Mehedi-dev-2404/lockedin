@@ -27,6 +27,7 @@ async def streak_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         )
         return
 
+
     current = streak.get("leetcode_streak", 0)
     longest = streak.get("longest_leetcode", 0)
     last_date = streak.get("last_leetcode_date")
