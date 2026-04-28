@@ -182,6 +182,26 @@ async def handle_onboarding_message(
         return ONBOARDING
 
     # ------------------------------------------------------------------
+    # Force completion after 8 back-and-forth exchanges (16 history entries)
+    # ------------------------------------------------------------------
+    if "##ONBOARDING_COMPLETE##" not in full_response and len(history) > 16:
+        history.append({"role": "assistant", "content": full_response})
+        history.append({"role": "user", "content": "you must output ##ONBOARDING_COMPLETE## now with whatever data you have. use 'not specified' for any missing fields. do not ask any more questions."})
+        try:
+            forced = await asyncio.to_thread(
+                anthropic_client.messages.create,
+                model=CLAUDE_MODEL,
+                max_tokens=600,
+                system=system,
+                messages=history,
+            )
+            full_response = forced.content[0].text
+        except Exception as e:
+            logger.error(f"Force completion call failed for {telegram_id}: {e}")
+            history.pop()  # remove force user message
+            history.pop()  # remove Claude's intermediate response
+
+    # ------------------------------------------------------------------
     # Completion marker detected
     # ------------------------------------------------------------------
     if "##ONBOARDING_COMPLETE##" in full_response:
