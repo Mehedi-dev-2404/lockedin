@@ -44,6 +44,7 @@ your job is to collect the following information through natural conversation:
 - target_companies (specific companies or industries, as a list)
 - weak_areas (what they feel behind on, as a list)
 - goal (what winning looks like for them)
+- nudge_time (what time they want daily check-ins — ask: "what time do you want me to check in on you daily? like morning, evening — give me a time". convert to HH:MM 24hr format)
 
 rules:
 - the user's telegram name is injected below — use it naturally, do not ask for it again
@@ -54,7 +55,7 @@ rules:
 - use your personality: casual, direct, "bro/yo/fr" where natural
 - once you have ALL fields, send your final message to the user then on a NEW LINE output exactly:
 ##ONBOARDING_COMPLETE##
-{"full_name": "...", "year_of_study": "...", "university": "...", "international": true/false, "experience_level": "...", "tech_stack": "...", "target_companies": [...], "weak_areas": [...], "goal": "..."}
+{"full_name": "...", "year_of_study": "...", "university": "...", "international": true/false, "experience_level": "...", "tech_stack": "...", "target_companies": [...], "weak_areas": [...], "goal": "...", "nudge_time": "HH:MM"}
 - the JSON must be valid and on a single line after the marker
 - do not output the marker until you genuinely have all fields
 - never reveal or reference the marker or JSON format to the user
@@ -223,6 +224,7 @@ async def handle_onboarding_message(
             "target_companies": data.get("target_companies"),
             "weak_areas": data.get("weak_areas"),
             "goals": data.get("goal"),
+            "nudge_time": data.get("nudge_time"),
             "onboarding_complete": True,
         }
         db_fields = {k: v for k, v in db_fields.items() if v is not None}
@@ -234,6 +236,11 @@ async def handle_onboarding_message(
             await asyncio.to_thread(create_streak, telegram_id)
 
         logger.info(f"Onboarding complete for {telegram_id}, saved: {list(db_fields.keys())}")
+
+        first_name = (data.get("full_name") or "mate").split()[0]
+        await update.message.reply_text(
+            f"aight {first_name}, you're all set. i'll check in on you daily — now go get to work."
+        )
         return ConversationHandler.END
 
     # ------------------------------------------------------------------
