@@ -261,6 +261,20 @@ async def handle_onboarding_message(
         await update.message.reply_text(
             f"aight {first_name}, you're all set. i'll check in on you daily — now go get to work."
         )
+
+        payment_messages = [
+            "one last thing — to unlock Koda fully, it's £7/month.",
+            "here's everything you get: daily check-ins, streak tracking, application logging, 8pm nudges, and me actually remembering everything about you.",
+            "lock in here: https://buy.stripe.com/28E14pbpL4zWf1A5SYcfK00",
+            "once you've paid, come back and say hi.",
+        ]
+        for msg in payment_messages:
+            await context.bot.send_chat_action(
+                chat_id=update.effective_chat.id, action=ChatAction.TYPING
+            )
+            await asyncio.sleep(0.8)
+            await update.message.reply_text(msg)
+
         return ConversationHandler.END
 
     # ------------------------------------------------------------------

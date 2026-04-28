@@ -48,6 +48,21 @@ def update_user(telegram_id: int, **kwargs) -> bool | None:
         return None
 
 
+def get_user_by_username(username: str) -> dict | None:
+    try:
+        response = (
+            supabase.table("users")
+            .select("*")
+            .eq("username", username)
+            .maybe_single()
+            .execute()
+        )
+        return response.data
+    except Exception as e:
+        logger.error(f"get_user_by_username failed for {username}: {e}")
+        return None
+
+
 def get_all_active_users() -> list[dict]:
     try:
         response = (

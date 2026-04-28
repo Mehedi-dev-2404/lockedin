@@ -91,6 +91,23 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         )
         return
 
+    if not user.get("is_premium"):
+        name = (user.get("full_name") or "mate").split()[0]
+        payment_messages = [
+            f"yo {name}, onboarding's done — here's the deal.",
+            "koda's £7/month. that's it. less than two coffees.",
+            "you've told me your targets. i know your weak spots. let's actually do something about it.",
+            "lock in here: https://buy.stripe.com/28E14pbpL4zWf1A5SYcfK00",
+            "once you pay, reply to this message and i'll activate your account.",
+        ]
+        for msg in payment_messages:
+            await context.bot.send_chat_action(
+                chat_id=update.effective_chat.id, action=ChatAction.TYPING
+            )
+            await asyncio.sleep(0.8)
+            await update.message.reply_text(msg)
+        return
+
     streak = get_streak(telegram_id) or {}
     user_context = build_user_context(user, streak)
 
