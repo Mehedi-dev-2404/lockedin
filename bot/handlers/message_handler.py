@@ -3,7 +3,7 @@ import logging
 from telegram import Update
 from telegram.constants import ChatAction
 from telegram.ext import ContextTypes
-from db.queries.user_queries import get_user, append_leetcode_progress
+from db.queries.user_queries import get_user, append_leetcode_progress, generate_payment_code
 from db.queries.streak_queries import (
     get_streak,
     update_leetcode_streak,
@@ -93,12 +93,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
     if not user.get("is_premium"):
         name = (user.get("full_name") or "mate").split()[0]
+        code = user.get("payment_code") or await asyncio.to_thread(generate_payment_code, telegram_id)
         payment_messages = [
             f"yo {name}, onboarding's done — here's the deal.",
-            "koda's £7/month. that's it. less than two coffees.",
-            "you've told me your targets. i know your weak spots. let's actually do something about it.",
+            "koda's £7/month. less than two coffees.",
+            f"your unique code is: {code}\nyou'll need this when you checkout — don't lose it.",
             "lock in here: https://buy.stripe.com/28E14pbpL4zWf1A5SYcfK00",
-            "once you pay, reply to this message and i'll activate your account.",
+            "once you've paid, come back and say hi.",
         ]
         for msg in payment_messages:
             await context.bot.send_chat_action(

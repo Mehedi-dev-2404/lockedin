@@ -1,4 +1,6 @@
 import logging
+import random
+import string
 from db.queries import supabase
 
 logger = logging.getLogger(__name__)
@@ -45,6 +47,46 @@ def update_user(telegram_id: int, **kwargs) -> bool | None:
         return True
     except Exception as e:
         logger.error(f"update_user failed for {telegram_id}: {e}")
+        return None
+
+
+def generate_payment_code(telegram_id: int) -> str:
+    chars = string.ascii_uppercase + string.digits
+    while True:
+        code = "".join(random.choices(chars, k=6))
+        # Check uniqueness
+        try:
+            existing = (
+                supabase.table("users")
+                .select("telegram_id")
+                .eq("payment_code", code)
+                .maybe_single()
+                .execute()
+            )
+            if existing.data:
+                continue
+        except Exception:
+            pass
+        try:
+            supabase.table("users").update({"payment_code": code}).eq("telegram_id", telegram_id).execute()
+            return code
+        except Exception as e:
+            logger.error(f"generate_payment_code failed for {telegram_id}: {e}")
+            raise
+
+
+def get_user_by_payment_code(code: str) -> dict | None:
+    try:
+        response = (
+            supabase.table("users")
+            .select("*")
+            .eq("payment_code", code.upper())
+            .maybe_single()
+            .execute()
+        )
+        return response.data
+    except Exception as e:
+        logger.error(f"get_user_by_payment_code failed for {code}: {e}")
         return None
 
 

@@ -10,7 +10,7 @@ from telegram.ext import (
     MessageHandler,
     filters,
 )
-from db.queries.user_queries import get_user, create_user, update_user
+from db.queries.user_queries import get_user, create_user, update_user, generate_payment_code
 from db.queries.streak_queries import get_streak, create_streak
 from bot.koda.anthropic_client import anthropic_client
 from bot.koda.utils import clean_json, get_display_name
@@ -262,9 +262,10 @@ async def handle_onboarding_message(
             f"aight {first_name}, you're all set. i'll check in on you daily — now go get to work."
         )
 
+        code = await asyncio.to_thread(generate_payment_code, telegram_id)
         payment_messages = [
             "one last thing — to unlock Koda fully, it's £7/month.",
-            "here's everything you get: daily check-ins, streak tracking, application logging, 8pm nudges, and me actually remembering everything about you.",
+            f"your unique activation code is: {code}\ncopy it — you'll need it at checkout.",
             "lock in here: https://buy.stripe.com/28E14pbpL4zWf1A5SYcfK00",
             "once you've paid, come back and say hi.",
         ]
