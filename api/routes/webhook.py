@@ -29,13 +29,14 @@ async def stripe_webhook(request: Request):
 
         # Extract activation code from custom fields
         activation_code = None
-        for field in session.get("custom_fields", []):
-            if field.get("key") in ("activationcode", "activation_code"):
-                activation_code = (field.get("text") or {}).get("value")
+        custom_fields = session.custom_fields or []
+        for field in custom_fields:
+            if field.key in ("activationcode", "activation_code"):
+                activation_code = field.text.value if field.text else None
                 break
 
         if not activation_code:
-            logger.warning(f"No activation code in custom_fields for session {session.get('id')}")
+            logger.warning(f"No activation code in custom_fields for session {session.id}")
             return {"status": "ok"}
 
         activation_code = activation_code.strip().upper()
