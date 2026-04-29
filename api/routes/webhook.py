@@ -31,7 +31,7 @@ async def stripe_webhook(request: Request):
         activation_code = None
         custom_fields = session.custom_fields or []
         for field in custom_fields:
-            if field.key in ("activationcode", "activation_code"):
+            if field.key in ("activationcode", "yourtelegramusername", "activation_code"):
                 activation_code = field.text.value if field.text else None
                 break
 
