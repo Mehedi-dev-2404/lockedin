@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 import uvicorn
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters
 from config.settings import TELEGRAM_BOT_TOKEN
@@ -32,7 +33,8 @@ async def main():
 
     schedule_daily_nudges(tg_app)
 
-    config = uvicorn.Config(fastapi_app, host="0.0.0.0", port=8000, log_level="info")
+    port = int(os.getenv("PORT", 8000))
+    config = uvicorn.Config(fastapi_app, host="0.0.0.0", port=port, log_level="info")
     server = uvicorn.Server(config)
 
     logger.info("Koda is live.")
