@@ -28,4 +28,23 @@ def build_user_context(user: dict, streak: dict) -> dict:
         "applications_streak": streak.get("applications_streak", 0),
         "project_streak": streak.get("project_streak", 0),
         "longest_leetcode": streak.get("longest_leetcode", 0),
+        "mode": user.get("mode", "FOCUS"),
     }
+
+
+def is_vague_input(message: str) -> bool:
+    msg = message.lower()
+    vague_phrases = [
+        "did some", "a bit of", "some leetcode",
+        "some coding", "a little"
+    ]
+    has_vague = any(p in msg for p in vague_phrases)
+    has_number = any(char.isdigit() for char in msg)
+    has_specific = any(term in msg for term in [
+        "two sum", "binary search", "dynamic programming",
+        "graph", "tree", "array", "string", "dp", "bfs",
+        "dfs", "linked list", "stack", "queue", "heap",
+        "python", "java", "javascript", "react", "sql",
+        "applied", "interviewed", "oa", "leetcode"
+    ])
+    return has_vague and not has_number and not has_specific

@@ -1,12 +1,14 @@
 import json
 import logging
 import anthropic
+from datetime import date
 from config.settings import CLAUDE_MODEL, CLAUDE_MAX_TOKENS
 from bot.koda.anthropic_client import anthropic_client
 from bot.koda.personality import build_system_prompt
 from bot.koda.utils import clean_json, get_display_name
 from db.queries.message_queries import save_message, get_recent_messages
 from db.queries.user_queries import get_user, update_user
+from db.queries.checkin_queries import get_recent_checkins
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +38,11 @@ Examples:
 "pushed some code today" -> {"leetcode": false, "leetcode_count": null, "leetcode_topic": false, "leetcode_topics": null, "applied": false, "company": null, "role": null, "project_work": true}
 "what should i focus on" -> {"leetcode": false, "leetcode_count": null, "leetcode_topic": false, "leetcode_topics": null, "applied": false, "company": null, "role": null, "project_work": false}"""
 
+_RECOVERY_KEYWORDS = [
+    "struggling", "cooked", "lost", "don't know where to start",
+    "overwhelmed", "stressed", "behind",
+]
+
 _INTENT_DEFAULT = {
     "leetcode": False,
     "leetcode_count": None,
@@ -55,6 +62,31 @@ def get_koda_response(telegram_id: int, user_message: str, user_context: dict) -
         total_message_count = user.get("total_message_count", 0) or 0
         if not is_premium and total_message_count >= 80:
             return None
+
+    # --- Mode calculation ---
+    recent_checkins = get_recent_checkins(telegram_id, limit=1)
+    if recent_checkins:
+        last_date_str = recent_checkins[0].get("date")
+        last_date = date.fromisoformat(last_date_str) if last_date_str else None
+        missed_days = (date.today() - last_date).days if last_date else 0
+    else:
+        missed_days = 0
+
+    msg_lower = user_message.lower()
+    if any(kw in msg_lower for kw in _RECOVERY_KEYWORDS):
+        new_mode = "RECOVERY"
+    elif missed_days == 0:
+        new_mode = "HYPE"
+    elif missed_days == 1:
+        new_mode = "PRESSURE"
+    elif 2 <= missed_days < 4:
+        new_mode = "ENFORCEMENT"
+    else:
+        new_mode = "FOCUS"
+
+    update_user(telegram_id, mode=new_mode)
+    user_context["mode"] = new_mode
+    # --- End mode calculation ---
 
     system_prompt = build_system_prompt(user_context)
     history = get_recent_messages(telegram_id, limit=20)

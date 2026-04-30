@@ -13,7 +13,7 @@ from db.queries.streak_queries import (
 from db.queries.checkin_queries import get_todays_checkin, upsert_todays_checkin
 from db.queries.application_queries import create_application, get_application_count
 from bot.koda.claude_client import get_koda_response, classify_intent
-from bot.koda.utils import get_display_name, build_user_context
+from bot.koda.utils import get_display_name, build_user_context, is_vague_input
 
 logger = logging.getLogger(__name__)
 
@@ -111,6 +111,20 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
     streak = get_streak(telegram_id) or {}
     user_context = build_user_context(user, streak)
+
+    if is_vague_input(user_message):
+        vague_responses = [
+            "that's too vague bro",
+            "what exactly did you do?",
+            "how many problems + what topic?",
+        ]
+        for msg in vague_responses:
+            await context.bot.send_chat_action(
+                chat_id=update.effective_chat.id, action=ChatAction.TYPING
+            )
+            await asyncio.sleep(0.8)
+            await update.message.reply_text(msg)
+        return
 
     # Run Koda response and intent classification in parallel
     koda_response, intent = await asyncio.gather(
