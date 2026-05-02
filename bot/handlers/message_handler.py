@@ -3,7 +3,7 @@ import logging
 from telegram import Update
 from telegram.constants import ChatAction
 from telegram.ext import ContextTypes
-from db.queries.user_queries import get_user, append_leetcode_progress, generate_payment_code
+from db.queries.user_queries import get_user, update_user, append_leetcode_progress, generate_payment_code
 from db.queries.streak_queries import (
     get_streak,
     update_leetcode_streak,
@@ -108,6 +108,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             await asyncio.sleep(0.8)
             await update.message.reply_text(msg)
         return
+
 
     streak = get_streak(telegram_id) or {}
     user_context = build_user_context(user, streak)

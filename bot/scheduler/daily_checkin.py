@@ -3,7 +3,7 @@ import logging
 from datetime import time as dt_time
 import pytz
 from telegram.ext import Application, ContextTypes
-from db.queries.user_queries import get_all_active_users
+from db.queries.user_queries import get_all_active_users, update_user
 from db.queries.checkin_queries import get_todays_checkin
 from db.queries.streak_queries import get_streak
 from bot.koda.claude_client import generate_nudge
@@ -55,10 +55,20 @@ def _make_nudge_job(nudge_time_str: str):
 
             streak = await asyncio.to_thread(get_streak, telegram_id) or {}
             user_context = build_user_context(user, streak)
-            nudge = await asyncio.to_thread(generate_nudge, user_context)
+
+            missed_days = user.get("missed_days") or 0
+            if missed_days <= 1:
+                tone = "friendly reminder, keep the streak going"
+            elif missed_days == 2:
+                tone = "apply pressure, they've missed 2 days, call it out"
+            else:
+                tone = "enforcement mode, direct and confrontational, no jokes, demand action now"
+
+            nudge = await asyncio.to_thread(generate_nudge, user_context, tone)
 
             try:
                 await context.bot.send_message(chat_id=telegram_id, text=nudge)
+                await asyncio.to_thread(update_user, telegram_id, missed_days=missed_days + 1)
             except Exception as e:
                 logger.error(f"Failed to send nudge to {telegram_id}: {e}")
 

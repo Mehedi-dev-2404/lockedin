@@ -85,6 +85,8 @@ def get_koda_response(telegram_id: int, user_message: str, user_context: dict) -
         new_mode = "FOCUS"
 
     update_user(telegram_id, mode=new_mode)
+    today = date.today()
+    update_user(telegram_id, last_active_date=str(today))
     user_context["mode"] = new_mode
     # --- End mode calculation ---
 
@@ -145,7 +147,7 @@ def classify_intent(user_message: str) -> dict:
         return dict(_INTENT_DEFAULT)
 
 
-def generate_nudge(user_context: dict) -> str:
+def generate_nudge(user_context: dict, tone: str = "friendly reminder") -> str:
     """Generate a personalised evening nudge for a user who hasn't checked in."""
     system = build_system_prompt(user_context)
     name = get_display_name(user_context)
@@ -154,7 +156,8 @@ def generate_nudge(user_context: dict) -> str:
     prompt = (
         f"Send {name} a short evening nudge — 2-3 lines max. "
         f"They haven't checked in today. Their goal is: {goals}. "
-        f"Make it feel personal and specific to them. No generic motivational stuff."
+        f"Make it feel personal and specific to them. No generic motivational stuff. "
+        f"Tone instruction: {tone}"
     )
 
     try:
