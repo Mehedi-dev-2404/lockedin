@@ -109,6 +109,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             await update.message.reply_text(msg)
         return
 
+    await asyncio.to_thread(update_user, telegram_id, missed_days=0)
 
     streak = get_streak(telegram_id) or {}
     user_context = build_user_context(user, streak)
