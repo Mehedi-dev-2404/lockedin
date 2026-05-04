@@ -3,14 +3,12 @@ import httpx
 import stripe
 from fastapi import APIRouter, HTTPException, Request
 from telegram import Bot
-from config.settings import STRIPE_WEBHOOK_SECRET, TELEGRAM_BOT_TOKEN
+from config.settings import STRIPE_WEBHOOK_SECRET, TELEGRAM_BOT_TOKEN, ADMIN_TELEGRAM_ID
 from db.queries.user_queries import get_user_by_payment_code, update_user
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-
-ADMIN_TELEGRAM_ID = 8571986284
 
 
 async def notify_admin(message: str):
@@ -31,10 +29,10 @@ async def stripe_webhook(request: Request):
 
     try:
         event = stripe.Webhook.construct_event(payload, sig_header, STRIPE_WEBHOOK_SECRET)
-    except stripe.error.SignatureVerificationError:
-        logger.warning("Stripe webhook signature verification failed")
-        raise HTTPException(status_code=400, detail="Invalid signature")
     except Exception as e:
+        if "signature" in str(e).lower() or "SignatureVerification" in str(e):
+            logger.warning("Stripe webhook signature verification failed")
+            raise HTTPException(status_code=400, detail="Invalid signature")
         logger.error(f"Stripe webhook error: {e}")
         raise HTTPException(status_code=400, detail="Webhook error")
 

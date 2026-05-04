@@ -79,7 +79,7 @@ def get_koda_response(telegram_id: int, user_message: str, user_context: dict) -
         new_mode = "HYPE"
     elif missed_days == 1:
         new_mode = "PRESSURE"
-    elif 2 <= missed_days < 4:
+    elif missed_days >= 2:
         new_mode = "ENFORCEMENT"
     else:
         new_mode = "FOCUS"

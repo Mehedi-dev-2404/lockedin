@@ -94,7 +94,7 @@ async def reset_onboarding_command(update: Update, context: ContextTypes.DEFAULT
         telegram_id,
         onboarding_complete=False,
         onboarding_step=0,
-        name=None,
+        full_name=None,
         university=None,
         year_of_study=None,
         target_type=None,
@@ -114,12 +114,23 @@ async def reset_onboarding_command(update: Update, context: ContextTypes.DEFAULT
     await update.message.reply_text("Onboarding reset. Send /start to go again.")
 
 
+async def support_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await update.message.reply_text(
+        "having issues or feedback?\n\n"
+        "message @mehedi2404 directly\n"
+        "or email mehedimostafabisd@gmail.com\n\n"
+        "i'll get back to you asap."
+    )
+
+
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(
         "Commands:\n\n"
         "/start — set up your profile (or restart onboarding)\n"
+        "/checkin — see today's progress\n"
         "/streak — check your current check-in streak\n"
         "/profile — view your profile and goals\n"
+        "/support — contact support or leave feedback\n"
         "/help — show this list\n\n"
         "Or just send me a message — I'm here to keep you on track."
     )

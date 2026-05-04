@@ -50,7 +50,8 @@ turn 6 — identify weakness:
 weak areas — be direct if they sound underprepared
 
 turn 7 — commitment:
-goal + what time they want daily check-ins
+goal + ask: "what time do you want me to check in on you daily? give me a time like 9pm or 10am"
+store as nudge_time in HH:MM 24-hour format (e.g. "21:00" for 9pm, "10:00" for 10am)
 
 turn 8 — close:
 output ##ONBOARDING_COMPLETE## with JSON
