@@ -19,4 +19,4 @@ jobs:
       - name: Deploy to Railway
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-        run: railway up --service lockedin
+        run: railway up --service 72b25821-1106-46d9-b87a-fea3f260a0ea --environment de912753-4edf-4138-875e-961ce6b0f204
