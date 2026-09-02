@@ -351,6 +351,15 @@ startCommand = "python main.py"
 
 The `web/` directory contains a static landing page deployed to Vercel. The Stripe Checkout link and activation code instructions are embedded in the HTML.
 
+The large media assets are hosted outside Git:
+
+| Asset | External URL |
+| --- | --- |
+| `628049383_17850994623672482_6249004133235336985_n.jpg` | `https://qu.ax/x/0lpm5.jpg` |
+| `video.mp4` | `https://qu.ax/x/yMmWE.mp4` |
+| `koda.mp4` | `https://qu.ax/x/2EED8.mp4` |
+| `koda.jpg` | `https://qu.ax/x/nK1m0.jpg` |
+
 ### Stripe webhook
 
 Register the webhook endpoint in the Stripe dashboard:
