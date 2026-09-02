@@ -28,6 +28,12 @@ env/
 *.log
 logs/
 
+# Media hosted externally
+628049383_17850994623672482_6249004133235336985_n.jpg
+video.mp4
+koda.mp4
+koda.jpg
+
 # Testing
 .pytest_cache/
 .coverage

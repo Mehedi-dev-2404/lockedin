@@ -43,7 +43,7 @@ LockedIn — Project Context
   • CTA: "Start grinding →" (liquid-glass button with cyan glow pulse)
   • Mono trial line: "Free 7-day trial. Cancel anytime."
   • Bottom corners: "KODA / V1.0" left, "ACCOUNTABILITY ENGINE" right
-  - Visual centrepiece: static koda.jpg orb image (cyan-to-deep-blue gradient sphere) layered
+  - Visual centrepiece: externally hosted Koda orb image (cyan-to-deep-blue gradient sphere) layered
   behind text
   • Slow rotation animation (80s linear, infinite)
   • Scale-breathing animation (7s ease-in-out)
@@ -54,8 +54,8 @@ LockedIn — Project Context
   - Mobile responsive at 768px breakpoint
   - prefers-reduced-motion respected
   - File location: web/index.html
-  - Asset: web/koda.jpg (served at /koda.jpg via Vercel)
-  - web/koda.mp4 exists in the web directory — currently unused in the HTML
+  - Asset: https://qu.ax/x/nK1m0.jpg (served from external object storage)
+  - koda.mp4 is externally hosted at https://qu.ax/x/2EED8.mp4 and currently unused in the HTML
   - DEPLOYMENT NOTE: index.html is at web/index.html — Vercel likely needs a vercel.json rewrite
   rule to serve it at the root path, or the file needs to be moved to the repo root before going
   fully production-live
@@ -156,8 +156,6 @@ LockedIn — Project Context
   │   └── models/                  (empty placeholder files)
   └── web/
       ├── index.html               (live landing page)
-      ├── koda.jpg                 (orb asset, served at /koda.jpg)
-      ├── koda.mp4                 (video asset, currently unused)
       ├── styles.css
       └── stripe_checkout.js
 
@@ -251,8 +249,8 @@ LockedIn — Project Context
   Changes made from the original document:
   - web/index2.html corrected to web/index.html throughout (index2.html does not exist; index.html
    is the live file)
-  - Asset path corrected from web/public/koda.jpg to web/koda.jpg
-  - web/koda.mp4 added to structure and noted as currently unused
+  - Image asset moved from web/koda.jpg to external object storage
+  - koda.mp4 moved to external object storage and remains unused
   - "Original web/index.html still exists, not in use" line removed (it is the active file)
   - "Personality rewrite" moved from What's Left to What's Built — personality.py already contains
    the new hype-friend prompt
